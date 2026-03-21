@@ -1,0 +1,12 @@
+{
+	"title": "CW 2.0 Extra Ammo",
+	"type": "serveronly",
+	"tags": [ "server" ],
+	"description": "Grants players additional reserve ammo on spawn for all CW 2.0 (Customizable Weaponry 2.0) weapons. Configure the number of extra magazines via EXTRA_MAGAZINES at the top of the script.",
+	"author": "Doctor Schnell",
+	"version": "1.0.0",
+	"ignore": [
+		"*.psd",
+		"*.md"
+	]
+}

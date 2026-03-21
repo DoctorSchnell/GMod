@@ -1,0 +1,24 @@
+# Claude Code local context (not shared)
+CLAUDE.local.md
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# GMod compiled / runtime
+*.gma
+*.cache
+*.dua
+
+# Secrets / credentials
+.env
+*.pem
+*.key

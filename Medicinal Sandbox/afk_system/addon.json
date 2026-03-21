@@ -1,0 +1,12 @@
+{
+	"title": "AFK System - 3D Sign, Scoreboard, ULX & XGUI",
+	"type": "servercontent",
+	"tags": [ "roleplay", "fun" ],
+	"description": "Full-featured AFK system with 3D spinning overhead sign, Sui Scoreboard integration, ULX commands, and XGUI settings panel. Supports auto-AFK timeout, manual toggle, admin force-AFK, and persistent configuration.",
+	"author": "Custom",
+	"version": "1.0.0",
+	"ignore": [
+		"*.psd",
+		"*.md"
+	]
+}
