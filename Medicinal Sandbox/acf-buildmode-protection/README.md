@@ -11,7 +11,7 @@ A server-side Garry's Mod addon that protects buildmode players from ACF (Armour
 
 ## Requirements
 
-- [ACF 2](https://github.com/Storont/ACF-3) (Armoured Combat Framework)
+- [ACF Unofficial](https://steamcommunity.com/sharedfiles/filedetails/?id=1538829125) (Armoured Combat Framework)
 - Buildmode-ULX (by kythre)
 - CPPI-compatible prop protection addon (optional, has fallback)
 

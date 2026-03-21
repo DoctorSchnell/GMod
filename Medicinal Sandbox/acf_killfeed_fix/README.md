@@ -12,7 +12,7 @@ This addon hooks into `InitPostEntity` and removes the two offending ACF hooks (
 
 ## Requirements
 
-- [ACF 2](https://github.com/Storont/ACF-3) (Armoured Combat Framework)
+- [ACF Unofficial](https://steamcommunity.com/sharedfiles/filedetails/?id=1538829125) (Armoured Combat Framework)
 
 ## Installation
 
