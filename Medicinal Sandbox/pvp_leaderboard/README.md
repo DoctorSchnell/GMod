@@ -1,4 +1,4 @@
-# PVP Leaderboard v2.1.0
+# PVP Leaderboard v2.2.0
 
 Persistent PVP leaderboard for Garry's Mod sandbox servers. Tracks kills, deaths, K/D ratio, kill streaks, and headshots across server reboots. Displays stats on a spawnable metal-framed floating sign entity with 3D2D rendering on both faces.
 
@@ -7,7 +7,8 @@ Persistent PVP leaderboard for Garry's Mod sandbox servers. Tracks kills, deaths
 - **Persistent Stats** — SQLite storage survives server reboots and map changes.
 - **Spawnable Entity** — Metal-framed floating sign with 3D2D content on both faces. Always shows 10 rows. Perm Props compatible.
 - **On-Screen Panel** — `!pvpboard` opens a draggable leaderboard overlay.
-- **XGUI Settings Panel** — Configure tracking, display entries, and cache intervals.
+- **Auto-Cycling Sort** — Leaderboard rotates through Kills, K/D, Best Streak, and Headshots with a split-flap transition animation.
+- **XGUI Settings Panel** — Configure tracking, display entries, sort cycle speed, and cache intervals.
 - **Kill Validation** — Only counts kills where the attacker is tagged by the PVP Combat Timer addon.
 - **Headshot Tracking** — Detects headshots via `LastHitGroup()` (works for bullet weapons including CW 2.0).
 
@@ -32,6 +33,7 @@ All settings are managed via the XGUI panel (Settings > PVP Leaderboard) or cons
 | `pvplb_enabled` | `1` | 0-1 | Enable/disable PVP leaderboard stat tracking |
 | `pvplb_max_entries` | `10` | 5-25 | Maximum number of players shown on leaderboard displays |
 | `pvplb_cache_interval` | `60` | 15-300 | Seconds between automatic cache refreshes from database |
+| `pvplb_sort_interval` | `20` | 10-120 | Seconds between automatic sort column cycling on displays |
 
 ## Commands
 
@@ -99,6 +101,7 @@ garrysmod/addons/pvp_leaderboard/
 
 ## Version History
 
+- **2.2.0** — Auto-cycling sort mode (Kills → K/D → Best Streak → Headshots) with split-flap transition animation. Active sort column highlighted in header. Configurable cycle interval via `pvplb_sort_interval`.
 - **2.1.0** — Entity is now invulnerable to all damage including ACF projectiles.
 - **2.0.0** — Consolidated three entity sizes (small/medium/large) into a single `pvp_leaderboard` entity backed by a hidden PHX 3x5 plate. Added `!pvpboard` command. Signs re-freeze after physgun placement.
 - **1.1.0** — Replaced PHX plate backing props with metal-framed floating sign rendering.

@@ -62,6 +62,13 @@ if cv then sMaxEntries:SetValue(cv:GetFloat()) end
 sMaxEntries.OnValueChanged = function(self, val) stagedChanges["pvplb_max_entries"] = math.Round(val) end
 y = y + 28
 
+-- Sort cycle interval: how often the leaderboard switches sort column
+local sSortInterval = xlib.makeslider{x = 5, y = y, w = 545, label = "Sort Cycle Interval (seconds)", min = 10, max = 120, decimal = 0, parent = canvas, textcolor = color_black}
+cv = GetConVar("pvplb_sort_interval")
+if cv then sSortInterval:SetValue(cv:GetFloat()) end
+sSortInterval.OnValueChanged = function(self, val) stagedChanges["pvplb_sort_interval"] = math.Round(val) end
+y = y + 28
+
 -- =============================================================================
 -- PERFORMANCE
 -- =============================================================================
@@ -105,6 +112,9 @@ btnReset.DoClick = function()
 
 	local cvC = GetConVar("pvplb_cache_interval")
 	if cvC then sCacheInterval:SetValue(cvC:GetFloat()) end
+
+	local cvS = GetConVar("pvplb_sort_interval")
+	if cvS then sSortInterval:SetValue(cvS:GetFloat()) end
 
 	surface.PlaySound("buttons/button14.wav")
 end

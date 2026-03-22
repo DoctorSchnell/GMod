@@ -2,7 +2,7 @@
 	"title": "PVP Leaderboard",
 	"type": "servercontent",
 	"author": "Doctor Schnell & Claude (Anthropic)",
-	"version": "2.1.0",
+	"version": "2.2.0",
 	"description": "Persistent PVP leaderboard tracking kills, deaths, streaks, and headshots. Displays on a spawnable metal-framed floating sign entity with 3D2D rendering. Integrates with PVP Combat Timer for kill validation.",
 	"tags": ["pvp", "fun"],
 	"ignore": ["*.psd", "*.md"]

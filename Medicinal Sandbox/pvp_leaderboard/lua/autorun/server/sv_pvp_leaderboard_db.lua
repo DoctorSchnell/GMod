@@ -312,6 +312,7 @@ local allowedConVars = {
 	["pvplb_enabled"]        = "superadmin",
 	["pvplb_max_entries"]    = "superadmin",
 	["pvplb_cache_interval"] = "superadmin",
+	["pvplb_sort_interval"]  = "superadmin",
 }
 
 net.Receive("PVPLeaderboard_ConfigChange", function(len, ply)

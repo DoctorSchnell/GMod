@@ -25,6 +25,9 @@ CreateConVar("pvplb_max_entries", "10", FLAGS, "Maximum number of players shown 
 -- How often the cache refreshes from the database (seconds)
 CreateConVar("pvplb_cache_interval", "60", FLAGS, "Seconds between automatic cache refreshes from database.", 15, 300)
 
+-- How often the leaderboard cycles to the next sort column (seconds, client-side display)
+CreateConVar("pvplb_sort_interval", "20", FLAGS, "Seconds between automatic sort column cycling on leaderboard displays.", 10, 120)
+
 -- =============================================================================
 -- RUNTIME CONFIG TABLE
 -- =============================================================================
@@ -37,13 +40,14 @@ local function SyncConfig()
 	PVPLeaderboard.Config.Enabled       = GetConVar("pvplb_enabled"):GetBool()
 	PVPLeaderboard.Config.MaxEntries    = GetConVar("pvplb_max_entries"):GetInt()
 	PVPLeaderboard.Config.CacheInterval = GetConVar("pvplb_cache_interval"):GetInt()
+	PVPLeaderboard.Config.SortInterval  = GetConVar("pvplb_sort_interval"):GetInt()
 end
 
 -- Initial sync on file load
 SyncConfig()
 
 -- Re-sync on any ConVar change
-local syncCvars = {"pvplb_enabled", "pvplb_max_entries", "pvplb_cache_interval"}
+local syncCvars = {"pvplb_enabled", "pvplb_max_entries", "pvplb_cache_interval", "pvplb_sort_interval"}
 for _, name in ipairs(syncCvars) do
 	cvars.AddChangeCallback(name, function() SyncConfig() end, "pvplb_sync")
 end
