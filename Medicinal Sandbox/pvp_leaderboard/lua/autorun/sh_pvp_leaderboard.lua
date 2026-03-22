@@ -1,18 +1,20 @@
---[[
-	PVP Leaderboard - Shared Configuration
-	Shared ConVars, namespace, and config sync.
-	MUST run on both server and client so replicated ConVars register in both realms.
-	Author: Doctor Schnell
-]]
+-- =============================================================================
+--  PVP Leaderboard - Shared Configuration
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Shared ConVars, namespace, and config sync.
+--  MUST run on both server and client so replicated ConVars register in both
+--  realms.
+-- =============================================================================
 
 PVPLeaderboard = PVPLeaderboard or {}
 
 -- Flags: persists to cfg, replicates to clients, notifies on change
 local FLAGS = bit.bor(FCVAR_ARCHIVE, FCVAR_REPLICATED, FCVAR_NOTIFY)
 
--------------------------------------------------
+-- =============================================================================
 -- CONVAR DEFINITIONS
--------------------------------------------------
+-- =============================================================================
 
 -- Master toggle for kill/death tracking
 CreateConVar("pvplb_enabled", "1", FLAGS, "Enable/disable PVP leaderboard stat tracking.", 0, 1)
@@ -23,9 +25,9 @@ CreateConVar("pvplb_max_entries", "10", FLAGS, "Maximum number of players shown 
 -- How often the cache refreshes from the database (seconds)
 CreateConVar("pvplb_cache_interval", "60", FLAGS, "Seconds between automatic cache refreshes from database.", 15, 300)
 
--------------------------------------------------
+-- =============================================================================
 -- RUNTIME CONFIG TABLE
--------------------------------------------------
+-- =============================================================================
 
 -- Synced from ConVars so we avoid calling GetConVar every frame.
 PVPLeaderboard.Config = PVPLeaderboard.Config or {}

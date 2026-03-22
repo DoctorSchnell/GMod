@@ -1,6 +1,6 @@
 -- =============================================================================
 --  Extra Ammo on Weapon Pickup / Spawn
---  Author: Doctor Schnell
+--  Author: Doctor Schnell & Claude (Anthropic)
 --
 --  Gives players additional reserve ammo whenever they receive any weapon,
 --  including CW 2.0 weapons, HL2 base weapons, and any other SWEP that

@@ -1,19 +1,11 @@
 -- =============================================================================
--- Spawn Protection ULX Patch
--- XGUI settings panel
--- =============================================================================
--- Replaces the original addon's broken spawnmenu panel with an XGUI settings
--- tab. Reads config values synced from the server via net message (see
--- sh_spawnprotection_ulx.lua) and sends changes back through the same channel
--- with server-side permission validation.
+--  Spawn Protection ULX Patch - XGUI Settings Panel
+--  Author: Doctor Schnell & Claude (Anthropic)
 --
--- Uses the standard XGUI pattern: panel created at file scope with xgui.null
--- as a placeholder parent, DScrollPanel with canvas, absolute y-positioning,
--- staged changes with Apply/Reset buttons.
---
--- Callbacks are suppressed during programmatic SetValue calls (init, reset,
--- live refresh) so only deliberate user interaction populates stagedChanges.
--- All staged changes are sent in a single bundled net message on Apply.
+--  Replaces the original addon's broken spawnmenu panel with an XGUI settings
+--  tab. Reads config values synced from the server via net message (see
+--  sh_spawnprotection_ulx.lua) and sends changes back through the same channel
+--  with server-side permission validation.
 -- =============================================================================
 
 -- Helper to get the current synced config from the server
@@ -21,10 +13,10 @@ local function GetConfig()
     return SpawnProtULX and SpawnProtULX.Config or {}
 end
 
--- -------------------------------------------------------------------------
+-- =============================================================================
 -- Build the panel at file scope (xgui.null is a placeholder parent that
 -- XGUI reparents when the settings tab is opened)
--- -------------------------------------------------------------------------
+-- =============================================================================
 local panel = xlib.makepanel{parent = xgui.null}
 
 -- Scrollable container
@@ -121,11 +113,11 @@ chkBubble.OnChange = function(self, val)
 end
 y = y + 35
 
--- -------------------------------------------------------------------------
+-- =============================================================================
 -- Helper to populate all controls from the server config table.
 -- Wraps SetValue calls in suppressCallbacks so they do not generate
 -- staged changes.
--- -------------------------------------------------------------------------
+-- =============================================================================
 local function PopulateControls()
     local cfg = GetConfig()
     suppressCallbacks = true

@@ -1,18 +1,20 @@
---[[
-	PVP Combat Timer - Shared Configuration
-	Shared ConVars and utility functions.
-	MUST run on both server and client so replicated ConVars register in both realms.
-	Author: Doctor Schnell
-]]
+-- =============================================================================
+--  PVP Combat Timer - Shared Configuration
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Shared ConVars and utility functions.
+--  MUST run on both server and client so replicated ConVars register in both
+--  realms.
+-- =============================================================================
 
 PVPCombat = PVPCombat or {}
 
 -- Flags: persists to cfg, replicates to clients, notifies on change
 local FLAGS = bit.bor(FCVAR_ARCHIVE, FCVAR_REPLICATED, FCVAR_NOTIFY)
 
--------------------------------------------------
+-- =============================================================================
 -- CONVAR DEFINITIONS
--------------------------------------------------
+-- =============================================================================
 
 -- Core settings
 CreateConVar("pvpcombat_enabled",  "1",  FLAGS, "Enable/disable the PVP Combat Timer system.", 0, 1)
@@ -30,9 +32,9 @@ PVPCombat.NW_KEY = "PVPCombat_ExpiresAt"
 -- Runtime config table (synced from ConVars so we don't call GetConVar every frame)
 PVPCombat.Config = PVPCombat.Config or {}
 
--------------------------------------------------
+-- =============================================================================
 -- BLOCKLIST PARSING
--------------------------------------------------
+-- =============================================================================
 
 -- Takes a raw semicolon-delimited string, returns a lowercase lookup table.
 local function ParseBlocklist(raw)
@@ -51,9 +53,9 @@ function PVPCombat.GetBlocklist()
 	return ParseBlocklist(GetConVar("pvpcombat_blocklist"):GetString())
 end
 
--------------------------------------------------
+-- =============================================================================
 -- UTILITY
--------------------------------------------------
+-- =============================================================================
 
 --- Check if a player is currently combat-tagged
 function PVPCombat.IsInCombat(ply)
@@ -67,9 +69,9 @@ function PVPCombat.GetTimeRemaining(ply)
 	return math.max(0, ply:GetNWFloat(PVPCombat.NW_KEY, 0) - CurTime())
 end
 
--------------------------------------------------
+-- =============================================================================
 -- SYNC CONVARS -> PVPCombat.Config
--------------------------------------------------
+-- =============================================================================
 
 -- Called on load and whenever a ConVar changes.
 local function SyncConfig()

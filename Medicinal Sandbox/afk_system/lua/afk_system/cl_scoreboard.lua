@@ -1,14 +1,16 @@
---[[
-    AFK System - Sui Scoreboard Integration
-    Hooks into Sui Scoreboard's player row panels to add:
-    - Row dimming for AFK players
-    - "AFK" badge right of the player name
-    Works non-invasively without modifying Sui Scoreboard source files.
-]]--
+-- =============================================================================
+--  AFK System - Sui Scoreboard Integration
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Hooks into Sui Scoreboard's player row panels to add:
+--  - Row dimming for AFK players
+--  - "AFK" badge right of the player name
+--  Works non-invasively without modifying Sui Scoreboard source files.
+-- =============================================================================
 
--------------------------------------------------
+-- =============================================================================
 -- FONTS
--------------------------------------------------
+-- =============================================================================
 
 surface.CreateFont("AFK_ScoreboardBadge", {
     font = "Roboto",
@@ -24,9 +26,9 @@ surface.CreateFont("AFK_ScoreboardTime", {
     antialias = true,
 })
 
--------------------------------------------------
+-- =============================================================================
 -- HELPERS
--------------------------------------------------
+-- =============================================================================
 
 --- Check if a panel looks like a Sui Scoreboard player row
 -- (as opposed to the expanded info card or other panels that also have .Player).
@@ -96,9 +98,9 @@ local function GetNameEndX(panel)
     return nil
 end
 
--------------------------------------------------
+-- =============================================================================
 -- PANEL HOOKING
--------------------------------------------------
+-- =============================================================================
 
 --- Recursively find player row panels.
 local function FindPlayerRows(panel, results)
@@ -184,9 +186,9 @@ local function HookPlayerRow(panel)
     end
 end
 
--------------------------------------------------
+-- =============================================================================
 -- SCANNER
--------------------------------------------------
+-- =============================================================================
 
 local nextScan = 0
 

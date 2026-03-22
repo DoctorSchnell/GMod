@@ -1,6 +1,6 @@
 # AFK System v1.0.0
 
-A full-featured AFK system for Garry's Mod servers with ULX/XGUI integration.
+A full-featured AFK system for Garry's Mod servers with ULX/XGUI integration. Includes 3D overhead signs, Sui Scoreboard integration, auto-AFK timeout, and a complete XGUI settings panel.
 
 ## Features
 
@@ -19,27 +19,7 @@ A full-featured AFK system for Garry's Mod servers with ULX/XGUI integration.
 
 ## Installation
 
-Extract the `afk_system` folder into your server's `garrysmod/addons/` directory:
-
-```
-garrysmod/addons/afk_system/
-├── addon.json
-└── lua/
-    ├── autorun/
-    │   └── afk_system_init.lua
-    ├── afk_system/
-    │   ├── sh_config.lua
-    │   ├── sh_convars.lua
-    │   ├── sv_core.lua
-    │   ├── cl_input.lua
-    │   ├── cl_overhead.lua
-    │   └── cl_scoreboard.lua
-    └── ulx/
-        ├── modules/sh/
-        │   └── sh_afk.lua
-        └── xgui/settings/
-            └── cl_afk_settings.lua
-```
+Extract the `afk_system` folder into your server's `garrysmod/addons/` directory.
 
 ## Configuration
 
@@ -57,7 +37,7 @@ All settings are configurable via the XGUI panel (Settings > AFK System) or via 
 
 Additional ConVars available for sign colors (`afk_sign_bg_r/g/b/a`, `afk_sign_text_r/g/b`), render distance, height offset, check intervals, and more.
 
-## ULX Commands
+## Commands
 
 | Command | Access | Description |
 |---------|--------|-------------|
@@ -66,6 +46,33 @@ Additional ConVars available for sign colors (`afk_sign_bg_r/g/b/a`, `afk_sign_t
 | `!unafk <player>` | Admin | Remove a player from AFK mode |
 | `!afktime <seconds>` | Superadmin | Set auto-AFK timeout (persists) |
 
-## License
+## File Structure
 
-Free to use and modify for your server.
+```
+garrysmod/addons/afk_system/
+├── addon.json
+├── README.md
+└── lua/
+    ├── autorun/
+    │   └── afk_system_init.lua
+    ├── afk_system/
+    │   ├── sh_config.lua
+    │   ├── sh_convars.lua
+    │   ├── sv_core.lua
+    │   ├── cl_input.lua
+    │   ├── cl_overhead.lua
+    │   └── cl_scoreboard.lua
+    └── ulx/
+        ├── modules/sh/
+        │   └── sh_afk.lua
+        └── xgui/settings/
+            └── cl_afk_settings.lua
+```
+
+## Version History
+
+- **1.0.0** — Initial release.
+
+## Author
+
+Doctor Schnell & Claude (Anthropic)

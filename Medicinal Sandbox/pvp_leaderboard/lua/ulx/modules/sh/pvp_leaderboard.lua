@@ -1,17 +1,16 @@
---[[
-	PVP Leaderboard - ULX Commands
-	Chat commands for viewing and managing PVP leaderboard stats.
-	Author: Doctor Schnell
+-- =============================================================================
+--  PVP Leaderboard - ULX Commands
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  !pvpstats [player]  - View stats (all players for self, admin for others)
+--  !pvpboard           - Open on-screen leaderboard panel
+--  !pvpreset <player>  - Reset a player's stats (SuperAdmin)
+--  !pvpresetall        - Wipe the entire leaderboard (SuperAdmin)
+-- =============================================================================
 
-	Commands:
-		!pvpstats [player]  - View a player's stats (or your own). All players for self, admin for others.
-		!pvpreset <player>  - Reset a specific player's stats. SuperAdmin only.
-		!pvpresetall        - Wipe the entire leaderboard. SuperAdmin only.
-]]
-
--------------------------------------------------
+-- =============================================================================
 -- !pvpstats [player] - View PVP stats
--------------------------------------------------
+-- =============================================================================
 
 function ulx.pvpstats(calling_ply, target_ply)
 	-- Default to the calling player if no target specified
@@ -49,9 +48,9 @@ pvpstats:addParam{type = ULib.cmds.PlayerArg, ULib.cmds.optional}
 pvpstats:defaultAccess(ULib.ACCESS_ALL)
 pvpstats:help("View a player's PVP stats (or your own if no player specified).")
 
--------------------------------------------------
+-- =============================================================================
 -- !pvpboard - Open the leaderboard panel on screen
--------------------------------------------------
+-- =============================================================================
 
 function ulx.pvpboard(calling_ply)
 	if not IsValid(calling_ply) then
@@ -67,9 +66,9 @@ local pvpboard = ulx.command("PVP Leaderboard", "ulx pvpboard", ulx.pvpboard, "!
 pvpboard:defaultAccess(ULib.ACCESS_ALL)
 pvpboard:help("Open the PVP leaderboard panel on screen.")
 
--------------------------------------------------
+-- =============================================================================
 -- !pvpreset <player> - Reset one player's stats
--------------------------------------------------
+-- =============================================================================
 
 function ulx.pvpreset(calling_ply, target_ply)
 	if not IsValid(target_ply) then
@@ -96,9 +95,9 @@ pvpreset:addParam{type = ULib.cmds.PlayerArg}
 pvpreset:defaultAccess(ULib.ACCESS_SUPERADMIN)
 pvpreset:help("Reset a player's PVP leaderboard stats to zero.")
 
--------------------------------------------------
+-- =============================================================================
 -- !pvpresetall - Wipe the entire leaderboard
--------------------------------------------------
+-- =============================================================================
 
 function ulx.pvpresetall(calling_ply)
 	if not PVPLeaderboard then

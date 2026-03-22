@@ -1,16 +1,14 @@
---[[
-    AFK System - ULX Module
-    Adds AFK commands to the ULX admin mod.
+-- =============================================================================
+--  AFK System - ULX Module
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Adds AFK commands to the ULX admin mod:
+--  !afk (self-toggle), !forceafk (admin), !unafk (admin), !afktime (superadmin)
+-- =============================================================================
 
-    Commands:
-        !afk         - Toggle your own AFK status (all players)
-        !forceafk    - Force a player into AFK mode (admin)
-        !unafk       - Remove a player from AFK mode (admin)
-]]--
-
--------------------------------------------------
+-- =============================================================================
 -- !afk - Self-toggle (available to all players)
--------------------------------------------------
+-- =============================================================================
 
 function ulx.afk(calling_ply)
     if not IsValid(calling_ply) then return end
@@ -30,9 +28,9 @@ local afk_cmd = ulx.command("AFK", "ulx afk", ulx.afk, "!afk")
 afk_cmd:defaultAccess(ULib.ACCESS_ALL)
 afk_cmd:help("Toggle your AFK status.")
 
--------------------------------------------------
+-- =============================================================================
 -- !forceafk - Admin force-AFK a player
--------------------------------------------------
+-- =============================================================================
 
 function ulx.forceafk(calling_ply, target_ply)
     if not IsValid(target_ply) then return end
@@ -56,9 +54,9 @@ forceafk_cmd:addParam{type = ULib.cmds.PlayerArg}
 forceafk_cmd:defaultAccess(ULib.ACCESS_ADMIN)
 forceafk_cmd:help("Force a player into AFK mode.")
 
--------------------------------------------------
+-- =============================================================================
 -- !unafk - Admin remove AFK from a player
--------------------------------------------------
+-- =============================================================================
 
 function ulx.unafk(calling_ply, target_ply)
     if not IsValid(target_ply) then return end
@@ -82,9 +80,9 @@ unafk_cmd:addParam{type = ULib.cmds.PlayerArg}
 unafk_cmd:defaultAccess(ULib.ACCESS_ADMIN)
 unafk_cmd:help("Remove a player from AFK mode.")
 
--------------------------------------------------
+-- =============================================================================
 -- !afktime - Set auto-AFK timeout (superadmin)
--------------------------------------------------
+-- =============================================================================
 
 function ulx.afktime(calling_ply, seconds)
     if not AFK then

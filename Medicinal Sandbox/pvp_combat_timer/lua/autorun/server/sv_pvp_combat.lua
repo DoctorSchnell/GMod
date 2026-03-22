@@ -1,39 +1,23 @@
---[[
-	PVP Combat Timer - Server Core
-	Combat detection, spawn/pickup restriction, and config sync.
-	Author: Doctor Schnell
-
-	v1.2.1:
-	- Added PlayerUse hook to block E-key interaction with blocklisted entities
-
-	v1.2.0:
-	- Merged spawn and pickup blocklists into single shared list
-	- Moved config management to XGUI, removed redundant ULX config commands
-
-	v1.1.0:
-	- Added pickup blocking with independent toggle (shares the main blocklist)
-	- Added per-player rate limit on deny notifications (3s)
-	- Added blocklist length/entry-count validation
-	- TagAttacker deduplicates redundant NWFloat writes under rapid fire
-	- NOTE: ACF 2 may route some damage through its own internal functions
-	  rather than EntityTakeDamage. If certain ACF weapons don't trigger
-	  combat tags, a supplementary hook into ACF's damage pipeline may
-	  be needed (similar to the ACF Buildmode Protection addon approach).
-]]
+-- =============================================================================
+--  PVP Combat Timer - Server Core
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Combat detection, spawn/pickup restriction, and config sync.
+-- =============================================================================
 
 PVPCombat = PVPCombat or {}
 
--------------------------------------------------
+-- =============================================================================
 -- NETWORKING
--------------------------------------------------
+-- =============================================================================
 
 util.AddNetworkString("PVPCombat_ConfigChange")
 util.AddNetworkString("PVPCombat_DenyNotify")
 util.AddNetworkString("PVPCombat_PickupDeny")
 
--------------------------------------------------
+-- =============================================================================
 -- DENY NOTIFICATION RATE LIMITING
--------------------------------------------------
+-- =============================================================================
 
 -- Per-player cooldown for deny messages. Shared across spawn and pickup
 -- denies to prevent chat flood from any combination of blocked actions.
@@ -62,9 +46,9 @@ local function SendDenyNotify(ply, netMsg, class)
 	return true
 end
 
--------------------------------------------------
+-- =============================================================================
 -- COMBAT DETECTION
--------------------------------------------------
+-- =============================================================================
 
 --- Tag an attacker as in-combat.
 -- Skips the NWFloat write if the existing expiry is close to the new one,
@@ -112,9 +96,9 @@ hook.Add("EntityTakeDamage", "PVPCombat_DetectCombat", function(target, dmginfo)
 	TagAttacker(attacker)
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- SPAWN RESTRICTION
--------------------------------------------------
+-- =============================================================================
 
 --- Check if a spawn should be blocked. Always blocks if matched,
 -- but the chat notification is rate-limited via SendDenyNotify.
@@ -155,9 +139,9 @@ hook.Add("PlayerSpawnProp", "PVPCombat_BlockProp", function(ply, model)
 	end
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- PICKUP RESTRICTION
--------------------------------------------------
+-- =============================================================================
 
 --- Block pickup of ground items during combat.
 -- Uses PlayerCanPickupItem which fires when walking over HL2 items.
@@ -190,9 +174,9 @@ hook.Add("PlayerUse", "PVPCombat_BlockUse", function(ply, ent)
 	return false
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- CLEANUP
--------------------------------------------------
+-- =============================================================================
 
 -- Remove deny tracking on disconnect
 hook.Add("PlayerDisconnected", "PVPCombat_CleanupDisconnect", function(ply)
@@ -200,9 +184,9 @@ hook.Add("PlayerDisconnected", "PVPCombat_CleanupDisconnect", function(ply)
 	lastDenyNotify[ply:SteamID()] = nil
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- ADMIN CONFIG CHANGES (from XGUI panel)
--------------------------------------------------
+-- =============================================================================
 
 -- Whitelist of ConVars that admins can change via XGUI.
 -- Values: "admin" or "superadmin" -- the minimum rank required.
@@ -261,9 +245,9 @@ net.Receive("PVPCombat_ConfigChange", function(len, ply)
 	ServerLog(string.format("[PVP Combat Timer] %s changed %s to: %s\n", ply:Nick(), cvarName, cvarValue))
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- CHAT COMMAND: !pvpstatus
--------------------------------------------------
+-- =============================================================================
 
 hook.Add("PlayerSay", "PVPCombat_ChatCommand", function(ply, text)
 	local cmd = string.lower(string.Trim(text))

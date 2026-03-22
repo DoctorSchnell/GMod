@@ -1,14 +1,11 @@
-# ACF Killfeed Fix v3.0
+# ACF Killfeed Fix v3.0.0
 
 A lightweight server-side fix for Garry's Mod that resolves duplicate killfeed entries caused by ACF (Armoured Combat Framework). Removes ACF's custom killfeed hooks after initialization so the base gamemode handles killfeed entries cleanly.
 
-## Problem
+## Features
 
-ACF registers its own `PlayerDeath` and `OnNPCKilled` hooks to write custom killfeed entries. These fire alongside the base gamemode's killfeed logic, resulting in duplicate death notifications appearing in the top-right corner.
-
-## Solution
-
-This addon hooks into `InitPostEntity` and removes the two offending ACF hooks (`ACF_PlayerDeath` and `ACF_OnNPCKilled`), letting the base gamemode handle all killfeed entries without duplication.
+- **Duplicate Prevention** — Removes ACF's `PlayerDeath` and `OnNPCKilled` hooks that fire alongside the base gamemode's killfeed logic.
+- **Automatic** — Hooks into `InitPostEntity` to remove the offending hooks after ACF loads. No configuration needed.
 
 ## Requirements
 
@@ -16,21 +13,29 @@ This addon hooks into `InitPostEntity` and removes the two offending ACF hooks (
 
 ## Installation
 
-Drop the `acf_killfeed_fix` folder into your server's `garrysmod/addons/` directory:
+Drop the `acf_killfeed_fix` folder into your server's `garrysmod/addons/` directory.
+
+## Configuration
+
+None. The fix is automatic.
+
+## File Structure
 
 ```
 garrysmod/addons/acf_killfeed_fix/
 ├── addon.json
+├── README.md
 └── lua/
     └── autorun/
         └── server/
             └── _acf_killfeed_fix.lua
 ```
 
-## Configuration
+## Version History
 
-None. The fix is automatic.
+- **3.0.0** — Simplified to pure hook removal (previous versions used different approaches).
+- **1.0.0** — Initial release.
 
 ## Author
 
-Doctor Schnell
+Doctor Schnell & Claude (Anthropic)

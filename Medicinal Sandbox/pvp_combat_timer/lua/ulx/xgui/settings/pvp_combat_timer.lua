@@ -1,8 +1,9 @@
---[[
-	PVP Combat Timer - XGUI Settings Panel
-	Uses xlib helpers and xgui.null parent pattern (matching AFK System addon).
-	Author: Doctor Schnell
-]]--
+-- =============================================================================
+--  PVP Combat Timer - XGUI Settings Panel
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Uses xlib helpers and xgui.null parent pattern (matching AFK System addon).
+-- =============================================================================
 
 -- Helper to send a config change to the server via net message
 local function SendConfigChange(cvarName, value)
@@ -26,9 +27,9 @@ local canvas = scroll:GetCanvas()
 local stagedChanges = {}
 local y = 5
 
--------------------------------------------------
+-- =============================================================================
 -- GENERAL
--------------------------------------------------
+-- =============================================================================
 
 xlib.makelabel{x = 5, y = y, label = "-- General --", textcolor = Color(200, 140, 0), parent = canvas}
 y = y + 18
@@ -45,9 +46,9 @@ if cv then sCooldown:SetValue(cv:GetFloat()) end
 sCooldown.OnValueChanged = function(self, val) stagedChanges["pvpcombat_cooldown"] = math.Round(val) end
 y = y + 28
 
--------------------------------------------------
+-- =============================================================================
 -- SPAWN BLOCKLIST
--------------------------------------------------
+-- =============================================================================
 
 xlib.makelabel{x = 5, y = y, label = "-- Blocked Entities (restricted during combat) --", textcolor = Color(200, 140, 0), parent = canvas}
 y = y + 18
@@ -135,9 +136,9 @@ btnReset.DoClick = function()
 end
 y = y + 34
 
--------------------------------------------------
+-- =============================================================================
 -- PICKUP BLOCKING
--------------------------------------------------
+-- =============================================================================
 
 xlib.makelabel{x = 5, y = y, label = "-- Pickup Blocking --", textcolor = Color(200, 140, 0), parent = canvas}
 y = y + 18
@@ -148,9 +149,9 @@ if cv then cbPickup:SetChecked(cv:GetBool()) end
 cbPickup.OnChange = function(self, val) stagedChanges["pvpcombat_block_pickup"] = val and "1" or "0" end
 y = y + 28
 
--------------------------------------------------
+-- =============================================================================
 -- APPLY / RESET
--------------------------------------------------
+-- =============================================================================
 
 local btnApply = xlib.makebutton{x = 445, y = y, w = 100, h = 25, label = "Apply", parent = canvas}
 btnApply.DoClick = function()
@@ -185,8 +186,8 @@ canvas:SetTall(y)
 -- Initial populate
 RefreshBlocklist()
 
--------------------------------------------------
+-- =============================================================================
 -- REGISTER
--------------------------------------------------
+-- =============================================================================
 
 xgui.addSettingModule("PVP Combat Timer", panel, "icon16/shield.png")

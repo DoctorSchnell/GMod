@@ -1,34 +1,30 @@
---[[
-    AFK System - Server Core
-    Manages AFK state, activity tracking, auto-AFK timeout, and chat commands.
-
-    PATCH NOTES (security audit):
-    - Removed duplicate AFK_SetConVar net receiver (was dead code doubling attack surface)
-    - Added server-side per-player rate limiting on AFK_Activity net messages
-    - Tightened config change permissions: sensitive ConVars require SuperAdmin
-    - Added length cap on afk_chat_prefix to prevent abuse
-]]--
+-- =============================================================================
+--  AFK System - Server Core
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Manages AFK state, activity tracking, auto-AFK timeout, and chat commands.
+-- =============================================================================
 
 AFK.LastActivity = AFK.LastActivity or {}
 
--------------------------------------------------
+-- =============================================================================
 -- NETWORKING
--------------------------------------------------
+-- =============================================================================
 
 util.AddNetworkString("AFK_Activity")
 util.AddNetworkString("AFK_ConfigChange")
 
--------------------------------------------------
+-- =============================================================================
 -- ACTIVITY RATE LIMITING (server-side)
--------------------------------------------------
+-- =============================================================================
 
 -- Tracks the last accepted ping time per player SteamID.
 -- Pings arriving faster than the configured rate are silently dropped.
 local lastPingAccepted = {}
 
--------------------------------------------------
+-- =============================================================================
 -- ADMIN CONFIG CHANGES (from XGUI panel)
--------------------------------------------------
+-- =============================================================================
 
 -- Whitelist of ConVars that admins can change via the XGUI panel.
 -- Values: "admin" or "superadmin" — the minimum rank required.
@@ -89,9 +85,9 @@ net.Receive("AFK_ConfigChange", function(len, ply)
     RunConsoleCommand(cvarName, cvarValue)
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- HELPERS
--------------------------------------------------
+-- =============================================================================
 
 --- Set a player's AFK status.
 -- @param ply     Player entity
@@ -144,9 +140,9 @@ function AFK.IsPlayerAFK(ply)
     return ply:GetNWBool(AFK.NW_IS_AFK, false)
 end
 
--------------------------------------------------
+-- =============================================================================
 -- ACTIVITY TRACKING
--------------------------------------------------
+-- =============================================================================
 
 -- Receive activity pings from clients (rate-limited server-side)
 net.Receive("AFK_Activity", function(len, ply)
@@ -184,9 +180,9 @@ hook.Add("PlayerDisconnected", "AFK_CleanupDisconnect", function(ply)
     lastPingAccepted[sid] = nil
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- AUTO-AFK TIMER
--------------------------------------------------
+-- =============================================================================
 
 local nextCheck = 0
 
@@ -208,11 +204,11 @@ hook.Add("Think", "AFK_AutoTimeout", function()
     end
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- CHAT COMMAND: !afk
 -- Only handles !afk here if ULX is NOT loaded.
 -- When ULX is present, the ULX module handles !afk to avoid double-toggle.
--------------------------------------------------
+-- =============================================================================
 
 hook.Add("PlayerSay", "AFK_ChatCommand", function(ply, text)
     local cmd = string.lower(string.Trim(text))

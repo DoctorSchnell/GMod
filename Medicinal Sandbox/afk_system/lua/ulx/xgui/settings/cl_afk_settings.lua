@@ -1,8 +1,10 @@
---[[
-    AFK System - XGUI Settings Panel
-    Uses a DScrollPanel for scrolling since we have more controls
-    than fit in the default XGUI settings panel height.
-]]--
+-- =============================================================================
+--  AFK System - XGUI Settings Panel
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Uses a DScrollPanel for scrolling since we have more controls
+--  than fit in the default XGUI settings panel height.
+-- =============================================================================
 
 local function SendConfigChange(cvarName, value)
     net.Start("AFK_ConfigChange")
@@ -28,9 +30,9 @@ local canvas = scroll:GetCanvas()
 local stagedChanges = {}
 local y = 5
 
--------------------------------------------------
+-- =============================================================================
 -- TIMING
--------------------------------------------------
+-- =============================================================================
 
 xlib.makelabel{x = 5, y = y, label = "— Timing —", textcolor = Color(200, 140, 0), parent = canvas}
 y = y + 18
@@ -53,9 +55,9 @@ if cv then sPing:SetValue(cv:GetFloat()) end
 sPing.OnValueChanged = function(self, val) stagedChanges["afk_ping_rate"] = math.Round(val, 1) end
 y = y + 28
 
--------------------------------------------------
+-- =============================================================================
 -- CHAT
--------------------------------------------------
+-- =============================================================================
 
 xlib.makelabel{x = 5, y = y, label = "— Chat —", textcolor = Color(200, 140, 0), parent = canvas}
 y = y + 18
@@ -66,9 +68,9 @@ if cv then cbBroadcast:SetChecked(cv:GetBool()) end
 cbBroadcast.OnChange = function(self, val) stagedChanges["afk_broadcast"] = val and "1" or "0" end
 y = y + 28
 
--------------------------------------------------
+-- =============================================================================
 -- OVERHEAD SIGN
--------------------------------------------------
+-- =============================================================================
 
 xlib.makelabel{x = 5, y = y, label = "— 3D Overhead Sign —", textcolor = Color(200, 140, 0), parent = canvas}
 y = y + 18
@@ -109,9 +111,9 @@ if cv then sSpin:SetValue(cv:GetFloat()) end
 sSpin.OnValueChanged = function(self, val) stagedChanges["afk_overhead_spin"] = math.Round(val) end
 y = y + 28
 
--------------------------------------------------
+-- =============================================================================
 -- SIGN COLORS
--------------------------------------------------
+-- =============================================================================
 
 xlib.makelabel{x = 5, y = y, label = "— Sign Colors (BG: R/G/B/A, Text: R/G/B) —", textcolor = Color(200, 140, 0), parent = canvas}
 y = y + 18
@@ -135,9 +137,9 @@ for _, cc in ipairs(colorConvars) do
 end
 y = y + 8
 
--------------------------------------------------
+-- =============================================================================
 -- SCOREBOARD
--------------------------------------------------
+-- =============================================================================
 
 xlib.makelabel{x = 5, y = y, label = "— Scoreboard —", textcolor = Color(200, 140, 0), parent = canvas}
 y = y + 18
@@ -148,9 +150,9 @@ if cv then sDim:SetValue(cv:GetFloat()) end
 sDim.OnValueChanged = function(self, val) stagedChanges["afk_scoreboard_dim"] = math.Round(val) end
 y = y + 28
 
--------------------------------------------------
+-- =============================================================================
 -- COLOR PREVIEW
--------------------------------------------------
+-- =============================================================================
 
 xlib.makelabel{x = 5, y = y, label = "— Color Preview —", textcolor = Color(200, 140, 0), parent = canvas}
 y = y + 18
@@ -180,9 +182,9 @@ preview.Paint = function(self, w, h)
 end
 y = y + 58
 
--------------------------------------------------
+-- =============================================================================
 -- APPLY / RESET
--------------------------------------------------
+-- =============================================================================
 
 local btnApply = xlib.makebutton{x = 445, y = y, w = 100, h = 25, label = "Apply", parent = canvas}
 btnApply.DoClick = function()
@@ -204,8 +206,8 @@ y = y + 40
 -- Set canvas height so scroll panel knows the content size
 canvas:SetTall(y)
 
--------------------------------------------------
+-- =============================================================================
 -- REGISTER
--------------------------------------------------
+-- =============================================================================
 
 xgui.addSettingModule("AFK System", panel, "icon16/clock.png")

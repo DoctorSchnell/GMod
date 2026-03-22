@@ -1,15 +1,16 @@
---[[
-	PVP Leaderboard - Client
-	Metal-framed floating sign with 3D2D leaderboard rendering on both faces.
-	Uses a PHX 3x5 plate for collision (model hidden).
-	Author: Doctor Schnell
-]]
+-- =============================================================================
+--  PVP Leaderboard - Client Entity Rendering
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Metal-framed floating sign with 3D2D leaderboard rendering on both faces.
+--  Uses a PHX 3x5 plate for collision (model hidden).
+-- =============================================================================
 
 include("shared.lua")
 
--------------------------------------------------
+-- =============================================================================
 -- SCREEN CONSTANTS
--------------------------------------------------
+-- =============================================================================
 
 -- Width of the leaderboard in 3D2D coordinate units
 local SCREEN_W = 470
@@ -43,9 +44,9 @@ local FRONT_ANGLE  = Angle(0, 90, 0)
 local BACK_OFFSET  = Vector(-HALF_H, HALF_W, -PANEL_FRONT)
 local BACK_ANGLE   = Angle(0, -90, 180)
 
--------------------------------------------------
+-- =============================================================================
 -- MATERIAL (vertex-color, fully opaque)
--------------------------------------------------
+-- =============================================================================
 
 local matBox = CreateMaterial("PVPLeaderboard_SignMat_" .. SysTime(), "UnlitGeneric", {
 	["$basetexture"] = "color/white",
@@ -54,9 +55,9 @@ local matBox = CreateMaterial("PVPLeaderboard_SignMat_" .. SysTime(), "UnlitGene
 	["$nolod"] = 1,
 })
 
--------------------------------------------------
+-- =============================================================================
 -- 3D BOX HELPERS
--------------------------------------------------
+-- =============================================================================
 
 local function MeshQuad(p1, p2, p3, p4, normal, col)
 	mesh.Position(p1) mesh.Normal(normal) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 0, 0) mesh.AdvanceVertex()
@@ -95,9 +96,9 @@ local function BoxCorners(pos, ri, up, fw)
 	return ftl, ftr, fbr, fbl, btl, btr, bbr, bbl
 end
 
--------------------------------------------------
+-- =============================================================================
 -- SIGN COLORS
--------------------------------------------------
+-- =============================================================================
 
 local FRAME_FACE = Color(55, 55, 60)
 local FRAME_SIDE = Color(40, 40, 45)
@@ -107,9 +108,9 @@ local PANEL_FACE = Color(20, 20, 25)
 local PANEL_SIDE = Color(10, 10, 15)
 local PANEL_TOP  = Color(28, 28, 33)
 
--------------------------------------------------
+-- =============================================================================
 -- RENDERING
--------------------------------------------------
+-- =============================================================================
 
 function ENT:Draw()
 	-- Model is hidden; the mesh sign replaces it visually.

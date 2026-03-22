@@ -1,8 +1,10 @@
---[[
-    AFK System - Client Input Detection
-    Monitors player input (movement, mouse, menus, attacks) and sends
-    activity pings to the server. Throttled to avoid network spam.
-]]--
+-- =============================================================================
+--  AFK System - Client Input Detection
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Monitors player input (movement, mouse, menus, attacks) and sends
+--  activity pings to the server. Throttled to avoid network spam.
+-- =============================================================================
 
 AFK.Client = AFK.Client or {}
 
@@ -10,9 +12,9 @@ local lastPingSent = 0
 local lastEyeAngles = Angle(0, 0, 0)
 local hasActivity = false
 
--------------------------------------------------
+-- =============================================================================
 -- ACTIVITY PING
--------------------------------------------------
+-- =============================================================================
 
 --- Send an activity ping to the server (throttled).
 local function SendActivityPing()
@@ -29,9 +31,9 @@ local function MarkActive()
     hasActivity = true
 end
 
--------------------------------------------------
+-- =============================================================================
 -- INPUT HOOKS
--------------------------------------------------
+-- =============================================================================
 
 -- CreateMove fires every tick with the player's input commands.
 -- We check for movement keys, attack buttons, and mouse movement.
@@ -78,9 +80,9 @@ hook.Add("StartChat", "AFK_ChatActivity", function()
     MarkActive()
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- ACTIVITY FLUSH
--------------------------------------------------
+-- =============================================================================
 
 -- Once per frame, if we detected activity, send the throttled ping.
 hook.Add("Think", "AFK_FlushActivity", function()

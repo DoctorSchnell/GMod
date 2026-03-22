@@ -1,7 +1,7 @@
 {
 	"title": "PVP Combat Timer",
 	"version": "2.1.0",
-	"author": "Doctor Schnell",
+	"author": "Doctor Schnell & Claude (Anthropic)",
 	"description": "Detects PVP combat and restricts spawning and pickup of configurable entities during a cooldown period. Includes HUD countdown, chat command, and XGUI configuration.",
 	"type": "servercontent",
 	"ignore": []

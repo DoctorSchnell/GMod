@@ -1,4 +1,4 @@
-# ACF Buildmode Protection
+# ACF Buildmode Protection v1.0.0
 
 A server-side Garry's Mod addon that protects buildmode players from ACF (Armoured Combat Framework) damage. Prevents ACF weapons from damaging props owned by buildmode players, and prevents buildmode players from dealing ACF damage to other players' props.
 
@@ -17,21 +17,28 @@ A server-side Garry's Mod addon that protects buildmode players from ACF (Armour
 
 ## Installation
 
-Drop the `acf-buildmode-protection` folder into your server's `garrysmod/addons/` directory:
+Drop the `acf-buildmode-protection` folder into your server's `garrysmod/addons/` directory.
+
+## Configuration
+
+None. Protection is automatic and always active when the addon is installed. If ACF is not present, the addon silently does nothing.
+
+## File Structure
 
 ```
 garrysmod/addons/acf-buildmode-protection/
 ├── addon.json
+├── README.md
 └── lua/
     └── autorun/
         └── server/
             └── sv_acf_buildmode_protect.lua
 ```
 
-## Configuration
+## Version History
 
-None. Protection is automatic and always active when the addon is installed. If ACF is not present, the addon silently does nothing.
+- **1.0.0** — Initial release.
 
 ## Author
 
-Doctor Schnell
+Doctor Schnell & Claude (Anthropic)

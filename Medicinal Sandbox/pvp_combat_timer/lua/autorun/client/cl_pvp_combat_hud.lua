@@ -1,14 +1,15 @@
---[[
-	PVP Combat Timer - Client HUD & Notifications
-	Combat countdown HUD element and deny messages for spawning and pickup.
-	Author: Doctor Schnell
-]]
+-- =============================================================================
+--  PVP Combat Timer - Client HUD & Notifications
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Combat countdown HUD element and deny messages for spawning and pickup.
+-- =============================================================================
 
 PVPCombat = PVPCombat or {}
 
--------------------------------------------------
+-- =============================================================================
 -- HUD ELEMENT
--------------------------------------------------
+-- =============================================================================
 
 -- Layout constants
 local ICON_SIZE = 24
@@ -116,9 +117,9 @@ hook.Add("HUDPaint", "PVPCombat_HUD", function()
 	end
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- SPAWN DENY NOTIFICATION
--------------------------------------------------
+-- =============================================================================
 
 net.Receive("PVPCombat_DenyNotify", function()
 	local class = net.ReadString()
@@ -135,9 +136,9 @@ net.Receive("PVPCombat_DenyNotify", function()
 	surface.PlaySound("buttons/button10.wav")
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- PICKUP DENY NOTIFICATION
--------------------------------------------------
+-- =============================================================================
 
 net.Receive("PVPCombat_PickupDeny", function()
 	local class = net.ReadString()

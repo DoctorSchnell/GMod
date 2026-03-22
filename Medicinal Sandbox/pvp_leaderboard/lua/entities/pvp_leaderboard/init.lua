@@ -1,9 +1,10 @@
---[[
-	PVP Leaderboard - Server
-	Initializes the entity model and physics.
-	Uses a PHX 3x5 plate as the backing prop (hidden behind the display).
-	Author: Doctor Schnell
-]]
+-- =============================================================================
+--  PVP Leaderboard - Server Entity Init
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Initializes the entity model and physics.
+--  Uses a PHX 3x5 plate as the backing prop (hidden behind the display).
+-- =============================================================================
 
 AddCSLuaFile("shared.lua")
 AddCSLuaFile("cl_init.lua")

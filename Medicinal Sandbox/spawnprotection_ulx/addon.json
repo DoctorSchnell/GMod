@@ -1,7 +1,7 @@
 {
     "title": "Spawn Protection ULX Patch",
     "description": "Adds an XGUI settings panel for the Spawn Protection Workshop addon. Fixes dedicated server ConVar access. Includes CW 2.0 compatibility fix.",
-    "author": "Doctor Schnell",
+    "author": "Doctor Schnell & Claude (Anthropic)",
     "version": "2.0.2",
     "ignore": [
         "README.md"

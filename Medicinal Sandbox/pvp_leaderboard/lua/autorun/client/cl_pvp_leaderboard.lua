@@ -1,15 +1,16 @@
---[[
-	PVP Leaderboard - Client Cache, Rendering, & Net Receivers
-	Receives leaderboard data from the server and stores it locally.
-	Provides DrawBoard() for 2D content and DrawSign() for 3D mesh sign entities.
-	Author: Doctor Schnell
-]]
+-- =============================================================================
+--  PVP Leaderboard - Client Cache, Rendering, & Net Receivers
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Receives leaderboard data from the server and stores it locally.
+--  Provides DrawBoard() for 2D content rendering on entities and panels.
+-- =============================================================================
 
 PVPLeaderboard = PVPLeaderboard or {}
 
--------------------------------------------------
+-- =============================================================================
 -- CLIENT-SIDE CACHE
--------------------------------------------------
+-- =============================================================================
 
 -- The local copy of the leaderboard, updated by the server.
 -- Entities read from this table for 3D2D rendering.
@@ -21,9 +22,9 @@ function PVPLeaderboard.GetClientCache()
 	return PVPLeaderboard.ClientCache
 end
 
--------------------------------------------------
+-- =============================================================================
 -- FONTS
--------------------------------------------------
+-- =============================================================================
 
 -- Large bold font for the title bar
 surface.CreateFont("PVPLeaderboard_Title", {
@@ -57,9 +58,9 @@ surface.CreateFont("PVPLeaderboard_Empty", {
 	antialias = true,
 })
 
--------------------------------------------------
+-- =============================================================================
 -- LEADERBOARD RENDERING
--------------------------------------------------
+-- =============================================================================
 
 -- Color palette for the leaderboard display
 local COLOR_BG          = Color(15, 15, 20, 240)
@@ -214,9 +215,9 @@ function PVPLeaderboard.DrawBoard(w)
 	end
 end
 
--------------------------------------------------
+-- =============================================================================
 -- NET RECEIVERS
--------------------------------------------------
+-- =============================================================================
 
 --- Receive the full leaderboard cache from the server.
 -- Called after every kill event and on the periodic refresh timer.
@@ -301,9 +302,9 @@ net.Receive("PVPLeaderboard_OpenBoard", function()
 	PVPLeaderboard.Panel = frame
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- INITIAL DATA REQUEST
--------------------------------------------------
+-- =============================================================================
 
 -- Request the current leaderboard from the server when the client finishes loading.
 -- This ensures data is available for any Perm Props entities already on the map.

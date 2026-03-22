@@ -3,7 +3,7 @@
 	"type": "serveronly",
 	"tags": [ "fix" ],
 	"description": "Resolves duplicate killfeed entries when ACF (Armoured Combat Framework) is installed. Removes ACF's custom killfeed hooks after initialisation so the base gamemode handles killfeed entries cleanly.",
-	"author": "Doctor Schnell",
+	"author": "Doctor Schnell & Claude (Anthropic)",
 	"version": "3.0.0",
 	"ignore": [
 		"*.psd",

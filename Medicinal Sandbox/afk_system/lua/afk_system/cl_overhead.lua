@@ -1,14 +1,16 @@
---[[
-    AFK System - 3D Spinning Overhead Sign
-    Metal-framed sign with a solid opaque colored panel.
-    Two nested mesh boxes: outer frame (dark metal) + inner panel (sign color).
-    Text on front and back faces via cam.Start3D2D.
-    Rotation synced across clients via shared NW float.
-]]--
+-- =============================================================================
+--  AFK System - 3D Spinning Overhead Sign
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Metal-framed sign with a solid opaque colored panel.
+--  Two nested mesh boxes: outer frame (dark metal) + inner panel (sign color).
+--  Text on front and back faces via cam.Start3D2D.
+--  Rotation synced across clients via shared NW float.
+-- =============================================================================
 
--------------------------------------------------
+-- =============================================================================
 -- FONTS
--------------------------------------------------
+-- =============================================================================
 
 surface.CreateFont("AFK_OverheadMain", {
     font = "Roboto",
@@ -26,9 +28,9 @@ surface.CreateFont("AFK_OverheadSub", {
     shadow = false,
 })
 
--------------------------------------------------
+-- =============================================================================
 -- MATERIAL (vertex-color, fully opaque)
--------------------------------------------------
+-- =============================================================================
 
 local matBox = CreateMaterial("AFK_SignBoxMat_" .. SysTime(), "UnlitGeneric", {
     ["$basetexture"] = "color/white",
@@ -37,9 +39,9 @@ local matBox = CreateMaterial("AFK_SignBoxMat_" .. SysTime(), "UnlitGeneric", {
     ["$nolod"] = 1,
 })
 
--------------------------------------------------
+-- =============================================================================
 -- 3D BOX
--------------------------------------------------
+-- =============================================================================
 
 local function MeshQuad(p1, p2, p3, p4, normal, col)
     mesh.Position(p1) mesh.Normal(normal) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 0, 0) mesh.AdvanceVertex()
@@ -80,9 +82,9 @@ local function BoxCorners(pos, ri, up, fw)
     return ftl, ftr, fbr, fbl, btl, btr, bbr, bbl
 end
 
--------------------------------------------------
+-- =============================================================================
 -- TEXT OVERLAY
--------------------------------------------------
+-- =============================================================================
 
 local function DrawSignText(signW, signH, tw, th, elapsed, stw, sth, fadeFrac, pulse)
     local textColor = ColorAlpha(AFK.Config.OverheadTextColor, 255 * fadeFrac * pulse)
@@ -102,9 +104,9 @@ local function DrawSignText(signW, signH, tw, th, elapsed, stw, sth, fadeFrac, p
     end
 end
 
--------------------------------------------------
+-- =============================================================================
 -- RENDERING
--------------------------------------------------
+-- =============================================================================
 
 hook.Add("PostDrawTranslucentRenderables", "AFK_OverheadText", function(bDepth, bSkybox)
     if bSkybox then return end

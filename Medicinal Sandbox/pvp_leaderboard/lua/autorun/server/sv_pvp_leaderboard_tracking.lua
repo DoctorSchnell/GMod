@@ -1,15 +1,16 @@
---[[
-	PVP Leaderboard - Kill Tracking
-	Hooks into PlayerDeath to record PVP kills and deaths.
-	Only counts kills where the attacker is tagged by the PVP Combat Timer addon.
-	Author: Doctor Schnell
-]]
+-- =============================================================================
+--  PVP Leaderboard - Kill Tracking
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Hooks into PlayerDeath to record PVP kills and deaths.
+--  Only counts kills where the attacker is tagged by the PVP Combat Timer.
+-- =============================================================================
 
 PVPLeaderboard = PVPLeaderboard or {}
 
--------------------------------------------------
+-- =============================================================================
 -- DEPENDENCY CHECK
--------------------------------------------------
+-- =============================================================================
 
 -- The PVP Combat Timer addon must be loaded for kill validation.
 -- PVPCombat.IsInCombat(attacker) is the gate for counting kills.
@@ -22,9 +23,9 @@ if not HasCombatTimer() then
 	ServerLog("[PVP Leaderboard] WARNING: PVP Combat Timer not detected. Kill tracking will be inactive until it loads.\n")
 end
 
--------------------------------------------------
+-- =============================================================================
 -- KILL TRACKING
--------------------------------------------------
+-- =============================================================================
 
 hook.Add("PlayerDeath", "PVPLeaderboard_TrackKill", function(victim, inflictor, attacker)
 	-- Master toggle check

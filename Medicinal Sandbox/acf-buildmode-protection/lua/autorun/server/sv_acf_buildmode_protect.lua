@@ -1,11 +1,19 @@
---[[
-    ACF Buildmode Prop Protection
-    Blocks ACF damage on props owned by players in build mode,
-    and prevents buildmode players from dealing ACF damage.
-    Drop this addon folder into your server's addons directory.
-    Works with: Buildmode-ULX (kythre) + ACF2 (and ACF extra weapons)
-]]
+-- =============================================================================
+--  ACF Buildmode Prop Protection
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Blocks ACF damage on props owned by players in build mode,
+--  and prevents buildmode players from dealing ACF damage.
+--  Works with: Buildmode-ULX (kythre) + ACF2 (and ACF extra weapons)
+-- =============================================================================
 
+-- =============================================================================
+-- HELPERS
+-- =============================================================================
+
+--- Resolve the owning player of an entity via CPPI or fallback buildOwner.
+-- @param ent Entity - the entity to check ownership of
+-- @return Player or nil
 local function GetPropOwner(ent)
     if not IsValid(ent) then return end
 
@@ -19,6 +27,10 @@ local function GetPropOwner(ent)
     end
 end
 
+--- Trace an inflictor back to the attacking player.
+-- Checks direct player, inflictor owner, and prop ownership chain.
+-- @param inflictor Entity - the damage source
+-- @return Player or nil
 local function GetAttacker(inflictor)
     if not IsValid(inflictor) then return end
 
@@ -32,6 +44,9 @@ local function GetAttacker(inflictor)
     if IsValid(owner) and owner:IsPlayer() then return owner end
 end
 
+--- Check if a player is currently in buildmode.
+-- @param ply Player - the player to check
+-- @return boolean
 local function IsInBuildmode(ply)
     return IsValid(ply) and ply:IsPlayer() and ply.buildmode == true
 end

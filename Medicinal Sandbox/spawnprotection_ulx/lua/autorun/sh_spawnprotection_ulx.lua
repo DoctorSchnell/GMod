@@ -1,11 +1,12 @@
 -- =============================================================================
--- Spawn Protection ULX Patch
--- Shared initialization, ConVar sync, and net message handling
--- =============================================================================
--- The original Workshop addon creates its ConVars server-side only, which
--- breaks the spawnmenu settings panel on dedicated servers. This file bridges
--- the gap by syncing ConVar values to clients via net messages, and receives
--- setting changes from the XGUI panel with tiered permission checks.
+--  Spawn Protection ULX Patch
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Shared initialization, ConVar sync, and net message handling.
+--  The original Workshop addon creates its ConVars server-side only, which
+--  breaks the spawnmenu settings panel on dedicated servers. This file bridges
+--  the gap by syncing ConVar values to clients via net messages, and receives
+--  setting changes from the XGUI panel with tiered permission checks.
 -- =============================================================================
 
 -- Shared reference table (accessible from ULX commands and XGUI panel)
@@ -51,11 +52,11 @@ if SERVER then
         validCvars[name] = true
     end
 
-    -- -------------------------------------------------------------------------
+    -- =============================================================================
     -- SyncConfig
     -- Reads all tracked ConVars and pushes their values to one player or
     -- broadcasts to everyone. Uses a compact binary format (11 bits total).
-    -- -------------------------------------------------------------------------
+    -- =============================================================================
     local function SyncConfig(ply)
         -- Bail if the original addon has not finished creating all its ConVars.
         -- The cvars.AddChangeCallback hooks fire as each ConVar is created, so
@@ -95,12 +96,12 @@ if SERVER then
         end, "SpawnProtULX_Sync_" .. key)
     end
 
-    -- -------------------------------------------------------------------------
+    -- =============================================================================
     -- Receive setting changes from the XGUI panel
     -- All changes are bundled into a single net message to avoid rate limit
     -- issues. The message contains a count byte followed by name/value pairs.
     -- Validates each ConVar name and enforces tiered permissions.
-    -- -------------------------------------------------------------------------
+    -- =============================================================================
     net.Receive("SpawnProtULX_Update", function(_, ply)
         if not IsValid(ply) then return end
 
@@ -150,9 +151,9 @@ if SERVER then
         end
     end)
 
-    -- -------------------------------------------------------------------------
+    -- =============================================================================
     -- Handle client requests for the current config (pull on XGUI tab open)
-    -- -------------------------------------------------------------------------
+    -- =============================================================================
     net.Receive("SpawnProtULX_RequestSync", function(_, ply)
         if not IsValid(ply) then return end
 
@@ -178,9 +179,9 @@ else
     -- Config table holds the latest values synced from the server
     SpawnProtULX.Config = SpawnProtULX.Config or {}
 
-    -- -------------------------------------------------------------------------
+    -- =============================================================================
     -- CW 2.0 compatibility fix
-    -- -------------------------------------------------------------------------
+    -- =============================================================================
     -- CW2's RenderScreenspaceEffects hook (cl_hooks.lua:55) assumes that
     -- several flashbang-related properties on the local player are always
     -- numbers. CW2 initializes them in its own InitPostEntity hook, but
@@ -189,7 +190,7 @@ else
     -- causing a nil-vs-number comparison spam. We set safe defaults here
     -- in both InitPostEntity and a one-shot Think fallback to cover all
     -- timing scenarios.
-    -- -------------------------------------------------------------------------
+    -- =============================================================================
     local cw2Defaults = {
         cwFlashbangDuration         = 0,
         cwFlashbangIntensity        = 0,
@@ -221,9 +222,9 @@ else
         end
     end)
 
-    -- -------------------------------------------------------------------------
+    -- =============================================================================
     -- Receive synced config from server and store locally
-    -- -------------------------------------------------------------------------
+    -- =============================================================================
     net.Receive("SpawnProtULX_Sync", function()
         SpawnProtULX.Config.enable       = net.ReadBool()
         SpawnProtULX.Config.duration     = net.ReadUInt(6)

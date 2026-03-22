@@ -1,14 +1,13 @@
---[[
-	PVP Leaderboard - Shared
-	Entity registration for both server and client realms.
-	Author: Doctor Schnell
-]]
+-- =============================================================================
+--  PVP Leaderboard - Shared Entity Registration
+--  Author: Doctor Schnell & Claude (Anthropic)
+-- =============================================================================
 
 ENT.Type      = "anim"
 ENT.Base      = "base_gmodentity"
 
 ENT.PrintName = "PVP Leaderboard"
-ENT.Author    = "Doctor Schnell"
+ENT.Author    = "Doctor Schnell & Claude (Anthropic)"
 ENT.Category  = "PVP Leaderboard"
 
 ENT.Spawnable = true

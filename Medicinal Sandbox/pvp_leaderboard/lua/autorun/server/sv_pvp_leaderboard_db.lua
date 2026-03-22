@@ -1,16 +1,17 @@
---[[
-	PVP Leaderboard - Database & Cache Management
-	SQLite storage via GMod's built-in sql.* library (sv.db).
-	Maintains an in-memory cache of the top N players for fast entity rendering.
-	Handles net sync to clients and admin config changes from XGUI.
-	Author: Doctor Schnell
-]]
+-- =============================================================================
+--  PVP Leaderboard - Database & Cache Management
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  SQLite storage via GMod's built-in sql.* library (sv.db).
+--  Maintains an in-memory cache of the top N players for fast entity rendering.
+--  Handles net sync to clients and admin config changes from XGUI.
+-- =============================================================================
 
 PVPLeaderboard = PVPLeaderboard or {}
 
--------------------------------------------------
+-- =============================================================================
 -- NETWORKING
--------------------------------------------------
+-- =============================================================================
 
 -- Cache broadcast: sends the full top-N leaderboard to clients
 util.AddNetworkString("PVPLeaderboard_SyncCache")
@@ -27,9 +28,9 @@ util.AddNetworkString("PVPLeaderboard_PlayerStats")
 -- Config change: XGUI panel sends a ConVar update to the server
 util.AddNetworkString("PVPLeaderboard_ConfigChange")
 
--------------------------------------------------
+-- =============================================================================
 -- ENTITY PHYSICS
--------------------------------------------------
+-- =============================================================================
 
 -- Leaderboard sign classes that use frozen physics for stable placement.
 local SIGN_CLASSES = {
@@ -47,9 +48,9 @@ hook.Add("PhysgunDrop", "PVPLeaderboard_FreezeOnDrop", function(ply, ent)
 	end
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- DATABASE SCHEMA
--------------------------------------------------
+-- =============================================================================
 
 -- Table name prefixed to avoid namespace collisions with other addons.
 local TABLE_NAME = "pvp_leaderboard_stats"
@@ -80,9 +81,9 @@ end
 -- Run schema creation immediately on load
 InitDatabase()
 
--------------------------------------------------
+-- =============================================================================
 -- CRUD OPERATIONS
--------------------------------------------------
+-- =============================================================================
 
 --- Fetch a single player's stats from the database.
 -- @param steamid64 string - the player's SteamID64
@@ -183,9 +184,9 @@ function PVPLeaderboard.ResetAllStats()
 	sql.Query(string.format("DELETE FROM %s", TABLE_NAME))
 end
 
--------------------------------------------------
+-- =============================================================================
 -- CACHE MANAGEMENT
--------------------------------------------------
+-- =============================================================================
 
 -- The in-memory cache holds the top N players sorted by kills (descending).
 -- Entities never query the database directly; they read from this cache
@@ -226,9 +227,9 @@ function PVPLeaderboard.RefreshCache()
 	PVPLeaderboard.CachedBoard = board
 end
 
--------------------------------------------------
+-- =============================================================================
 -- NET SYNC: SERVER -> CLIENT
--------------------------------------------------
+-- =============================================================================
 
 --- Send the cached leaderboard to a specific player, or broadcast to all.
 -- @param target Player entity (optional) - if nil, broadcasts to everyone
@@ -275,9 +276,9 @@ function PVPLeaderboard.RefreshAndBroadcast()
 	PVPLeaderboard.SendCache()
 end
 
--------------------------------------------------
+-- =============================================================================
 -- CLIENT SYNC REQUEST (rate-limited)
--------------------------------------------------
+-- =============================================================================
 
 -- Per-player cooldown to prevent request spam
 local REQUEST_COOLDOWN = 5
@@ -301,9 +302,9 @@ hook.Add("PlayerDisconnected", "PVPLeaderboard_CleanupRequest", function(ply)
 	lastRequest[ply:SteamID()] = nil
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- ADMIN CONFIG CHANGES (from XGUI panel)
--------------------------------------------------
+-- =============================================================================
 
 -- Whitelist of ConVars that admins can change via XGUI.
 -- Values: the minimum rank required to change each ConVar.
@@ -337,9 +338,9 @@ net.Receive("PVPLeaderboard_ConfigChange", function(len, ply)
 	ServerLog(string.format("[PVP Leaderboard] %s changed %s to: %s\n", ply:Nick(), cvarName, cvarValue))
 end)
 
--------------------------------------------------
+-- =============================================================================
 -- INITIALIZATION & PERIODIC REFRESH
--------------------------------------------------
+-- =============================================================================
 
 -- Populate the cache immediately on server start.
 -- This ensures Perm Props entities have data as soon as they spawn on map load.

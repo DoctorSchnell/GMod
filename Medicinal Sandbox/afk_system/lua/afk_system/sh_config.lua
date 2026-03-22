@@ -1,14 +1,16 @@
---[[
-    AFK System - Shared Configuration
-    Edit these values to customize the AFK system for your server.
-]]--
+-- =============================================================================
+--  AFK System - Shared Configuration
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Edit these values to customize the AFK system for your server.
+-- =============================================================================
 
 AFK = AFK or {}
 AFK.Config = AFK.Config or {}
 
--------------------------------------------------
+-- =============================================================================
 -- TIMING
--------------------------------------------------
+-- =============================================================================
 
 -- Seconds of no input before a player is automatically marked AFK.
 -- Set to 0 to disable auto-AFK (manual !afk only).
@@ -21,9 +23,9 @@ AFK.Config.CheckInterval = 5
 -- Lower = more responsive but more network traffic. 1-2 is fine.
 AFK.Config.ActivityPingRate = 1
 
--------------------------------------------------
+-- =============================================================================
 -- CHAT MESSAGES
--------------------------------------------------
+-- =============================================================================
 
 -- Broadcast a chat message when a player goes AFK or returns.
 AFK.Config.BroadcastMessages = true
@@ -31,9 +33,9 @@ AFK.Config.BroadcastMessages = true
 -- Prefix for chat messages.
 AFK.Config.ChatPrefix = "[AFK] "
 
--------------------------------------------------
+-- =============================================================================
 -- 3D OVERHEAD SIGN
--------------------------------------------------
+-- =============================================================================
 
 -- Show floating "AFK" sign above AFK players' heads.
 AFK.Config.ShowOverhead = true
@@ -60,9 +62,9 @@ AFK.Config.OverheadScale = 0.08
 -- Set to 0 to disable spinning (sign will face a fixed direction).
 AFK.Config.OverheadSpinSpeed = 30
 
--------------------------------------------------
+-- =============================================================================
 -- SCOREBOARD (Sui Scoreboard Integration)
--------------------------------------------------
+-- =============================================================================
 
 -- Dim AFK player rows on the scoreboard.
 AFK.Config.ScoreboardDimAlpha = 120
@@ -73,9 +75,9 @@ AFK.Config.ScoreboardBadgeColor = Color(255, 160, 0, 255)
 -- AFK indicator background color on the scoreboard.
 AFK.Config.ScoreboardBadgeBgColor = Color(40, 40, 40, 200)
 
--------------------------------------------------
+-- =============================================================================
 -- NETWORK VARIABLE NAMES (don't change unless conflicts)
--------------------------------------------------
+-- =============================================================================
 
 AFK.NW_IS_AFK = "AFK_IsAFK"
 AFK.NW_SINCE  = "AFK_Since"

@@ -1,4 +1,4 @@
-# PVP Combat Timer
+# PVP Combat Timer v2.1.0
 
 A Garry's Mod addon that detects player-vs-player combat and temporarily restricts spawning and pickup of configurable entities during a cooldown period. Built for sandbox/build servers where you want to prevent players from spawning or grabbing healing items (or other entities) immediately after attacking someone.
 
@@ -16,39 +16,39 @@ A Garry's Mod addon that detects player-vs-player combat and temporarily restric
 - Buildmode exemption (compatible with Buildmode-ULX / kythre)
 - Prop protection compatibility (CPPI owner resolution for indirect damage)
 
+## Requirements
+
+- [ULX](https://github.com/TeamUlysses/ulx) and [ULib](https://github.com/TeamUlysses/ulib) (for admin commands and XGUI panel)
+- Buildmode-ULX by kythre (optional, buildmode players are exempt from tagging)
+
 ## Installation
 
 Drop the `pvp_combat_timer` folder into your server's `garrysmod/addons/` directory.
-
-### Requirements
-
-- ULX and ULib (for admin commands and XGUI panel)
-- Optional: Buildmode-ULX by kythre (buildmode players are exempt from tagging)
 
 ## Configuration
 
 All settings are managed through replicated ConVars that persist across map changes and server restarts. You can change them through the XGUI panel, ULX commands, or the server console.
 
-### ConVars
-
 | ConVar | Default | Range | Description |
-|---|---|---|---|
+|--------|---------|-------|-------------|
 | `pvpcombat_enabled` | `1` | 0-1 | Enable or disable the system |
 | `pvpcombat_cooldown` | `10` | 5-30 | Seconds after attacking before restrictions lift |
 | `pvpcombat_blocklist` | `item_healthkit;item_battery` | string | Semicolon-delimited list of entity classes blocked during combat |
 | `pvpcombat_block_pickup` | `1` | 0-1 | Block pickup of ground items during combat (uses same blocklist) |
 
+## Commands
+
 ### ULX Commands
 
 | Command | Access | Description |
-|---|---|---|
+|---------|--------|-------------|
 | `!pvpcombattest` | Admin | Tag yourself as in-combat for testing |
 | `!pvpcombatclear <player>` | SuperAdmin | Manually clear a player's combat tag |
 
 ### Chat Commands
 
 | Command | Access | Description |
-|---|---|---|
+|---------|--------|-------------|
 | `!pvpstatus` | All players | Check your current combat timer status |
 
 ## How It Works
@@ -62,21 +62,21 @@ Damage from vehicles and CPPI-owned entities (props, etc.) is traced back to the
 ## File Structure
 
 ```
-pvp_combat_timer/
-  addon.json
-  README.md
-  lua/
-    autorun/
-      sh_pvp_combat_config.lua      -- Shared ConVars, config sync, utility functions
-      client/
-        cl_pvp_combat_hud.lua       -- HUD countdown and deny notifications
-      server/
-        sv_pvp_combat.lua           -- Combat detection, spawn/pickup blocking, admin config
-    ulx/
-      modules/sh/
-        sh_pvp_combat_ulx.lua       -- ULX admin commands
-      xgui/settings/
-        pvp_combat_timer.lua        -- XGUI settings panel
+garrysmod/addons/pvp_combat_timer/
+├── addon.json
+├── README.md
+└── lua/
+    ├── autorun/
+    │   ├── sh_pvp_combat_config.lua      -- Shared ConVars, config sync, utility functions
+    │   ├── client/
+    │   │   └── cl_pvp_combat_hud.lua     -- HUD countdown and deny notifications
+    │   └── server/
+    │       └── sv_pvp_combat.lua         -- Combat detection, spawn/pickup blocking, admin config
+    └── ulx/
+        ├── modules/sh/
+        │   └── sh_pvp_combat_ulx.lua     -- ULX admin commands
+        └── xgui/settings/
+            └── pvp_combat_timer.lua      -- XGUI settings panel
 ```
 
 ## Notes
@@ -88,11 +88,11 @@ pvp_combat_timer/
 
 ## Version History
 
-- **2.1.0** - Added PlayerUse hook to block E-key interaction with blocklisted entities (e.g. sent_ball). Pickup toggle controls both walk-over and E-use blocking.
-- **2.0.0** - Merged spawn and pickup blocklists into a single shared list. Moved all config management to XGUI, stripped redundant ULX config commands. Added `!pvpcombattest` command for self-tagging during testing.
-- **1.1.0** - Added pickup blocking with independent toggle. Security and performance audit: deny notification rate limiting, blocklist size validation, TagAttacker NWFloat deduplication for rapid-fire weapons.
-- **1.0.0** - Initial release.
+- **2.1.0** — Added PlayerUse hook to block E-key interaction with blocklisted entities (e.g. sent_ball). Pickup toggle controls both walk-over and E-use blocking.
+- **2.0.0** — Merged spawn and pickup blocklists into a single shared list. Moved all config management to XGUI, stripped redundant ULX config commands. Added `!pvpcombattest` command for self-tagging during testing.
+- **1.1.0** — Added pickup blocking with independent toggle. Security and performance audit: deny notification rate limiting, blocklist size validation, TagAttacker NWFloat deduplication for rapid-fire weapons.
+- **1.0.0** — Initial release.
 
 ## Author
 
-Doctor Schnell
+Doctor Schnell & Claude (Anthropic)

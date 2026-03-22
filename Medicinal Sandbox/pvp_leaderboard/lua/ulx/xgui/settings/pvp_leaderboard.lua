@@ -1,8 +1,10 @@
---[[
-	PVP Leaderboard - XGUI Settings Panel
-	Uses xlib helpers and xgui.null parent pattern (matching AFK System and PVP Combat Timer).
-	Author: Doctor Schnell
-]]
+-- =============================================================================
+--  PVP Leaderboard - XGUI Settings Panel
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Uses xlib helpers and xgui.null parent pattern (matching AFK System and
+--  PVP Combat Timer).
+-- =============================================================================
 
 -- Helper to send a config change to the server via net message.
 -- The server validates permissions before applying the change.
@@ -32,9 +34,9 @@ local canvas = scroll:GetCanvas()
 local stagedChanges = {}
 local y = 5
 
--------------------------------------------------
+-- =============================================================================
 -- GENERAL
--------------------------------------------------
+-- =============================================================================
 
 xlib.makelabel{x = 5, y = y, label = "-- General --", textcolor = Color(200, 140, 0), parent = canvas}
 y = y + 18
@@ -46,9 +48,9 @@ if cv then cbEnabled:SetChecked(cv:GetBool()) end
 cbEnabled.OnChange = function(self, val) stagedChanges["pvplb_enabled"] = val and "1" or "0" end
 y = y + 28
 
--------------------------------------------------
+-- =============================================================================
 -- DISPLAY
--------------------------------------------------
+-- =============================================================================
 
 xlib.makelabel{x = 5, y = y, label = "-- Display --", textcolor = Color(200, 140, 0), parent = canvas}
 y = y + 18
@@ -60,9 +62,9 @@ if cv then sMaxEntries:SetValue(cv:GetFloat()) end
 sMaxEntries.OnValueChanged = function(self, val) stagedChanges["pvplb_max_entries"] = math.Round(val) end
 y = y + 28
 
--------------------------------------------------
+-- =============================================================================
 -- PERFORMANCE
--------------------------------------------------
+-- =============================================================================
 
 xlib.makelabel{x = 5, y = y, label = "-- Performance --", textcolor = Color(200, 140, 0), parent = canvas}
 y = y + 18
@@ -75,9 +77,9 @@ if cv then sCacheInterval:SetValue(cv:GetFloat()) end
 sCacheInterval.OnValueChanged = function(self, val) stagedChanges["pvplb_cache_interval"] = math.Round(val) end
 y = y + 34
 
--------------------------------------------------
+-- =============================================================================
 -- APPLY / RESET
--------------------------------------------------
+-- =============================================================================
 
 -- Apply button: sends all staged changes to the server
 local btnApply = xlib.makebutton{x = 445, y = y, w = 100, h = 25, label = "Apply", parent = canvas}
@@ -112,9 +114,9 @@ y = y + 40
 -- Set canvas height so the scroll panel knows the content size
 canvas:SetTall(y)
 
--------------------------------------------------
+-- =============================================================================
 -- REGISTER
--------------------------------------------------
+-- =============================================================================
 
 -- Register this panel with XGUI under the Settings tab
 xgui.addSettingModule("PVP Leaderboard", panel, "icon16/medal_gold_1.png")

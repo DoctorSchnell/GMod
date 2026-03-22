@@ -1,13 +1,14 @@
---[[
-	PVP Combat Timer - ULX Commands
-	Action commands only. All config (enable/disable, cooldown, blocklist)
-	is managed through the XGUI settings panel.
-	Author: Doctor Schnell
-]]
+-- =============================================================================
+--  PVP Combat Timer - ULX Commands
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Action commands only. All config (enable/disable, cooldown, blocklist)
+--  is managed through the XGUI settings panel.
+-- =============================================================================
 
--------------------------------------------------
+-- =============================================================================
 -- TEST COMBAT TAG (tag yourself for testing)
--------------------------------------------------
+-- =============================================================================
 
 function ulx.pvpcombat_test(calling_ply)
 	if not IsValid(calling_ply) then return end
@@ -29,9 +30,9 @@ local test = ulx.command("PVP Combat Timer", "ulx pvpcombat_test", ulx.pvpcombat
 test:defaultAccess(ULib.ACCESS_ADMIN)
 test:help("Tag yourself as in-combat for testing purposes.")
 
--------------------------------------------------
+-- =============================================================================
 -- CLEAR COMBAT TAG (admin override)
--------------------------------------------------
+-- =============================================================================
 
 function ulx.pvpcombat_cleartag(calling_ply, target_ply)
 	if not IsValid(target_ply) then

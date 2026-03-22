@@ -1,7 +1,9 @@
---[[
-    AFK System - Autorun Loader
-    Handles file inclusion for server and client realms
-]]--
+-- =============================================================================
+--  AFK System - Autorun Loader
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Handles file inclusion for server and client realms.
+-- =============================================================================
 
 local function IncludeClient(path)
     if SERVER then

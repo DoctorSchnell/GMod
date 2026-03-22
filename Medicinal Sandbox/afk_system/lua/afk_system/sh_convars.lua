@@ -1,14 +1,16 @@
---[[
-    AFK System - Shared ConVars
-    Creates replicated, archived ConVars for all AFK settings.
-    MUST run on both server and client so replicated ConVars register in both realms.
-    These persist across map changes and server restarts.
-    The XGUI panel reads/writes these directly.
-]]--
+-- =============================================================================
+--  AFK System - Shared ConVars
+--  Author: Doctor Schnell & Claude (Anthropic)
+--
+--  Creates replicated, archived ConVars for all AFK settings.
+--  MUST run on both server and client so replicated ConVars register in both
+--  realms. These persist across map changes and server restarts.
+--  The XGUI panel reads/writes these directly.
+-- =============================================================================
 
--------------------------------------------------
+-- =============================================================================
 -- CONVAR DEFINITIONS
--------------------------------------------------
+-- =============================================================================
 
 -- Flags: persists to cfg, replicates to clients, notifies on change
 local FLAGS = bit.bor(FCVAR_ARCHIVE, FCVAR_REPLICATED, FCVAR_NOTIFY)
@@ -42,9 +44,9 @@ CreateConVar("afk_sign_text_b",         "50",   FLAGS, "Sign text blue.", 0, 255
 -- Scoreboard
 CreateConVar("afk_scoreboard_dim",      "120",  FLAGS, "Scoreboard row dim alpha for AFK players.", 0, 255)
 
--------------------------------------------------
+-- =============================================================================
 -- SYNC CONVARS -> AFK.Config
--------------------------------------------------
+-- =============================================================================
 
 -- Called once on load and whenever a ConVar changes.
 local function SyncConfig()
