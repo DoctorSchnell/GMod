@@ -1,9 +1,10 @@
 -- =============================================================================
---  ACF Buildmode Prop Protection
+--  Buildmode Enhancements v1.1.0
 --  Author: Doctor Schnell & Claude (Anthropic)
 --
---  Blocks ACF damage on props owned by players in build mode,
---  and prevents buildmode players from dealing ACF damage.
+--  Protects props owned by buildmode players from all damage sources
+--  (ACF and standard Source engine), and prevents buildmode players
+--  from dealing ACF damage.
 --  Works with: Buildmode-ULX (kythre) + ACF2 (and ACF extra weapons)
 -- =============================================================================
 
@@ -51,7 +52,28 @@ local function IsInBuildmode(ply)
     return IsValid(ply) and ply:IsPlayer() and ply.buildmode == true
 end
 
-hook.Add("Initialize", "BuildmodeACFProtection_Init", function()
+-- =============================================================================
+-- GENERAL DAMAGE PROTECTION (Source engine: RPG, grenades, physics, etc.)
+-- =============================================================================
+
+hook.Add("EntityTakeDamage", "BuildmodeEnhancements_PropProtect", function(target, dmginfo)
+    -- Only protect non-player entities (props, vehicles, SENTs, etc.)
+    if target:IsPlayer() then return end
+
+    local owner = GetPropOwner(target)
+    if not IsInBuildmode(owner) then return end
+
+    -- Block damage TO buildmode player props
+    dmginfo:SetDamage(0)
+    dmginfo:ScaleDamage(0)
+    return true
+end)
+
+-- =============================================================================
+-- ACF DAMAGE PROTECTION (ACF bypasses EntityTakeDamage)
+-- =============================================================================
+
+hook.Add("Initialize", "BuildmodeEnhancements_ACFProtect", function()
     timer.Simple(1, function()
         if not ACF_Damage then return end
 
