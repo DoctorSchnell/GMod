@@ -22,3 +22,31 @@ function ENT:Initialize()
 		phys:EnableMotion(false)
 	end
 end
+
+-- Block standard GMod damage (bullets, explosions, fire, etc.)
+function ENT:OnTakeDamage(dmginfo)
+	return false
+end
+
+-- =============================================================================
+-- ACF DAMAGE PROTECTION
+-- ACF bypasses the normal damage system, so we wrap ACF_Damage directly.
+-- Same pattern as acf-buildmode-protection: Initialize hook + 1s delay
+-- ensures ACF_Damage is defined before we wrap it.
+-- =============================================================================
+
+hook.Add("Initialize", "PVPLeaderboard_ACFProtection", function()
+	timer.Simple(1, function()
+		if not ACF_Damage then return end
+
+		local OriginalACF_Damage = ACF_Damage
+
+		function ACF_Damage(Entity, Energy, FrAera, Angle, Inflictor, Bone, ...)
+			if IsValid(Entity) and Entity:GetClass() == "pvp_leaderboard" then
+				return { Damage = 0, Overkill = 0, Loss = 0, Kill = false }
+			end
+
+			return OriginalACF_Damage(Entity, Energy, FrAera, Angle, Inflictor, Bone, ...)
+		end
+	end)
+end)

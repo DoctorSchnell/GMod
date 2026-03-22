@@ -1,4 +1,4 @@
-# PVP Leaderboard v2.0.0
+# PVP Leaderboard v2.1.0
 
 Persistent PVP leaderboard for Garry's Mod sandbox servers. Tracks kills, deaths, K/D ratio, kill streaks, and headshots across server reboots. Displays stats on a spawnable metal-framed floating sign entity with 3D2D rendering on both faces.
 
@@ -51,7 +51,7 @@ Spawn from the Entities tab in the spawn menu under the **PVP Leaderboard** cate
 |--------|---------------|--------------|
 | PVP Leaderboard | `plate3x5.mdl` | ~235 x 144 game units |
 
-The entity renders as a metal-framed floating sign (dark gunmetal frame, charcoal panel), displays on both faces, has solid collision via a hidden PHX plate, and re-freezes after physgun placement.
+The entity renders as a metal-framed floating sign (dark gunmetal frame, charcoal panel), displays on both faces, has solid collision via a hidden PHX plate, and re-freezes after physgun placement. The entity is invulnerable to all damage including ACF projectiles.
 
 ## Stats Tracked
 
@@ -88,7 +88,7 @@ garrysmod/addons/pvp_leaderboard/
     │       └── sv_pvp_leaderboard_tracking.lua    -- Kill tracking via PlayerDeath hook
     ├── entities/pvp_leaderboard/
     │   ├── shared.lua                             -- Entity registration
-    │   ├── init.lua                               -- Server physics
+    │   ├── init.lua                               -- Server physics, damage protection
     │   └── cl_init.lua                            -- Client 3D rendering
     └── ulx/
         ├── modules/sh/
@@ -99,6 +99,7 @@ garrysmod/addons/pvp_leaderboard/
 
 ## Version History
 
+- **2.1.0** — Entity is now invulnerable to all damage including ACF projectiles.
 - **2.0.0** — Consolidated three entity sizes (small/medium/large) into a single `pvp_leaderboard` entity backed by a hidden PHX 3x5 plate. Added `!pvpboard` command. Signs re-freeze after physgun placement.
 - **1.1.0** — Replaced PHX plate backing props with metal-framed floating sign rendering.
 - **1.0.0** — Initial release.

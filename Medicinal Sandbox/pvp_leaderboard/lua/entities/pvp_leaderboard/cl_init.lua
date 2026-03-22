@@ -35,7 +35,7 @@ local SIGN_DEPTH = 3
 local HALF_D = SIGN_DEPTH / 2
 
 -- Skip 3D2D rendering beyond this distance squared (~1500 units).
-local RENDER_DIST_SQ = 2250000
+local RENDER_DIST_SQ = 52500000
 
 -- 3D2D text offsets and angles (entity local space)
 local PANEL_FRONT = HALF_D + 0.2
