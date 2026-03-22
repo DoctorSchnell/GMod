@@ -1,0 +1,9 @@
+{
+	"title": "PVP Leaderboard",
+	"type": "servercontent",
+	"author": "Doctor Schnell",
+	"version": "1.1.0",
+	"description": "Persistent PVP leaderboard tracking kills, deaths, streaks, and headshots. Displays on spawnable floating sign entities with metal-framed 3D mesh rendering. Integrates with PVP Combat Timer for kill validation.",
+	"tags": ["pvp", "fun"],
+	"ignore": ["*.psd", "*.md"]
+}
