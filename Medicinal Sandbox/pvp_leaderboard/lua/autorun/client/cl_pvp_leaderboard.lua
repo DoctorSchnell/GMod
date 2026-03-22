@@ -88,11 +88,11 @@ local PAD      = 8
 -- Column X positions for each data field
 local COL_RANK  = 10
 local COL_NAME  = 40
-local COL_KILLS = 230
-local COL_DEATH = 280
-local COL_KD    = 330
-local COL_BEST  = 385
-local COL_HS    = 440
+local COL_KILLS = 225
+local COL_DEATH = 285
+local COL_KD    = 345
+local COL_BEST  = 395
+local COL_HS    = 445
 
 -- =============================================================================
 -- SORT MODE DEFINITIONS
@@ -275,11 +275,11 @@ end
 
 -- Column header definitions (label, x-position)
 local HEADERS = {
-	{label = "K",    col = COL_KILLS},
-	{label = "D",    col = COL_DEATH},
-	{label = "K/D",  col = COL_KD},
-	{label = "Best", col = COL_BEST},
-	{label = "HS",   col = COL_HS},
+	{label = "Kills",     col = COL_KILLS},
+	{label = "Deaths",    col = COL_DEATH},
+	{label = "K/D",       col = COL_KD},
+	{label = "KS",  col = COL_BEST},
+	{label = "HS",  col = COL_HS},
 }
 
 --- Draw the column header row at the given y offset.
@@ -428,6 +428,20 @@ end, "pvplb_sort_cycle")
 -- =============================================================================
 -- NET RECEIVERS
 -- =============================================================================
+
+--- Receive a sort mode override from the server (!pvpsort command).
+-- Triggers a split-flap transition and resets the cycle timer.
+net.Receive("PVPLeaderboard_SetSort", function()
+	local index = net.ReadUInt(3)
+	if index < 1 or index > #SORT_MODES then return end
+
+	if index ~= currentSortIndex then
+		BeginSortTransition(index)
+	end
+
+	-- Reset the cycle timer so it counts from now
+	StartSortCycleTimer()
+end)
 
 --- Receive the full leaderboard cache from the server.
 -- Called after every kill event and on the periodic refresh timer.

@@ -4,6 +4,7 @@
 --
 --  !pvpstats [player]  - View stats (all players for self, admin for others)
 --  !pvpboard           - Open on-screen leaderboard panel
+--  !pvpsort <mode>     - Set the sort mode for all clients (Admin)
 --  !pvpreset <player>  - Reset a player's stats (SuperAdmin)
 --  !pvpresetall        - Wipe the entire leaderboard (SuperAdmin)
 -- =============================================================================
@@ -65,6 +66,44 @@ end
 local pvpboard = ulx.command("PVP Leaderboard", "ulx pvpboard", ulx.pvpboard, "!pvpboard")
 pvpboard:defaultAccess(ULib.ACCESS_ALL)
 pvpboard:help("Open the PVP leaderboard panel on screen.")
+
+-- =============================================================================
+-- !pvpsort <mode> - Set leaderboard sort mode for all clients
+-- =============================================================================
+
+-- Maps user-friendly names to sort mode indices (matching SORT_MODES in cl_pvp_leaderboard.lua)
+local SORT_MODE_MAP = {
+	kills     = 1,
+	kd        = 2,
+	ks        = 3,
+	hs        = 4,
+	streak    = 3,  -- alias
+	headshots = 4,  -- alias
+}
+
+function ulx.pvpsort(calling_ply, mode)
+	mode = string.lower(string.Trim(mode))
+
+	local index = SORT_MODE_MAP[mode]
+	if not index then
+		local valid = "kills, kd, ks, hs"
+		ULib.tsayError(calling_ply, "Invalid sort mode. Valid options: " .. valid)
+		return
+	end
+
+	-- Broadcast the sort mode to all connected clients
+	net.Start("PVPLeaderboard_SetSort")
+		net.WriteUInt(index, 3)
+	net.Broadcast()
+
+	local labels = {"kills", "K/D", "KS", "HS"}
+	ulx.fancyLogAdmin(calling_ply, "#A set the PVP leaderboard sort to #s.", labels[index])
+end
+
+local pvpsort = ulx.command("PVP Leaderboard", "ulx pvpsort", ulx.pvpsort, "!pvpsort")
+pvpsort:addParam{type = ULib.cmds.StringArg, hint = "kills|kd|ks|hs"}
+pvpsort:defaultAccess(ULib.ACCESS_ADMIN)
+pvpsort:help("Set the leaderboard sort mode for all players.")
 
 -- =============================================================================
 -- !pvpreset <player> - Reset one player's stats

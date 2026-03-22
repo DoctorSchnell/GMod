@@ -28,6 +28,9 @@ util.AddNetworkString("PVPLeaderboard_PlayerStats")
 -- Config change: XGUI panel sends a ConVar update to the server
 util.AddNetworkString("PVPLeaderboard_ConfigChange")
 
+-- Sort override: admin sets the sort mode for all clients (!pvpsort)
+util.AddNetworkString("PVPLeaderboard_SetSort")
+
 -- =============================================================================
 -- ENTITY PHYSICS
 -- =============================================================================

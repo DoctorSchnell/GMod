@@ -42,6 +42,7 @@ All settings are managed via the XGUI panel (Settings > PVP Leaderboard) or cons
 | `!pvpstats` | All | View your own PVP stats in chat |
 | `!pvpstats <player>` | Admin | View another player's PVP stats |
 | `!pvpboard` | All | Open the leaderboard as a draggable on-screen panel |
+| `!pvpsort <mode>` | Admin | Set the sort mode for all players (kills, kd, streak, headshots) |
 | `!pvpreset <player>` | SuperAdmin | Reset a player's stats to zero |
 | `!pvpresetall` | SuperAdmin | Wipe the entire leaderboard (cannot be undone) |
 
