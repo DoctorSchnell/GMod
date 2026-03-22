@@ -13,15 +13,16 @@ include("shared.lua")
 -- =============================================================================
 
 -- Width of the leaderboard in 3D2D coordinate units
-local SCREEN_W = 470
+local SCREEN_W = 940
 
 -- Scale: maps 3D2D units to game units.
--- At 0.50, the 470-unit-wide screen spans ~235 game units (fits the 3x5 plate).
-local SCALE = 0.50
+-- At 0.25, the 940-unit-wide screen spans ~235 game units (fits the 3x5 plate).
+-- Half the scale of the original 0.50 for 2x sharper text rendering.
+local SCALE = 0.25
 
 -- Fixed content height: 10 rows (title + header + 10 data rows + padding).
--- 36 + 24 + 22*10 + 8 = 288 3D2D units → 144 game units at 0.50 scale.
-local CONTENT_H = 288
+-- 72 + 48 + 45.5*10 + 1 = 576 3D2D units → 144 game units at 0.25 scale.
+local CONTENT_H = 576
 
 -- Computed game-unit dimensions
 local GAME_W = SCREEN_W * SCALE   -- 235
@@ -38,7 +39,7 @@ local HALF_D = SIGN_DEPTH / 2
 local RENDER_DIST_SQ = 52500000
 
 -- 3D2D text offsets and angles (entity local space)
-local PANEL_FRONT = HALF_D + 0.2
+local PANEL_FRONT = HALF_D + 0.4
 local FRONT_OFFSET = Vector(-HALF_H, -HALF_W, PANEL_FRONT)
 local FRONT_ANGLE  = Angle(0, 90, 0)
 local BACK_OFFSET  = Vector(-HALF_H, HALF_W, -PANEL_FRONT)

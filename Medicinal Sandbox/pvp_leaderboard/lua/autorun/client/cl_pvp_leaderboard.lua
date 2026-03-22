@@ -30,7 +30,7 @@ end
 -- Large bold font for the title bar
 surface.CreateFont("PVPLeaderboard_Title", {
 	font = "Roboto",
-	size = 32,
+	size = 64,
 	weight = 700,
 	antialias = true,
 })
@@ -38,7 +38,7 @@ surface.CreateFont("PVPLeaderboard_Title", {
 -- Medium font for column headers
 surface.CreateFont("PVPLeaderboard_Header", {
 	font = "Roboto",
-	size = 18,
+	size = 36,
 	weight = 600,
 	antialias = true,
 })
@@ -46,7 +46,7 @@ surface.CreateFont("PVPLeaderboard_Header", {
 -- Standard font for data rows
 surface.CreateFont("PVPLeaderboard_Row", {
 	font = "Roboto",
-	size = 16,
+	size = 32,
 	weight = 400,
 	antialias = true,
 })
@@ -54,7 +54,7 @@ surface.CreateFont("PVPLeaderboard_Row", {
 -- Small font for the "no data" placeholder
 surface.CreateFont("PVPLeaderboard_Empty", {
 	font = "Roboto",
-	size = 14,
+	size = 28,
 	weight = 400,
 	antialias = true,
 })
@@ -79,20 +79,20 @@ local COLOR_HEADER_TEXT = Color(200, 200, 210, 255)
 local COLOR_EMPTY       = Color(120, 120, 130, 255)
 local COLOR_FLAP        = Color(255, 176, 0, 255)
 
--- Layout constants (in 3D2D coordinate units)
-local TITLE_H  = 36
-local HEADER_H = 24
-local ROW_H    = 22
-local PAD      = 8
+-- Layout constants (in 3D2D coordinate units, 2x for high-res rendering)
+local TITLE_H  = 72
+local HEADER_H = 48
+local ROW_H    = 45.5
+local PAD      = 1
 
 -- Column X positions for each data field
-local COL_RANK  = 10
-local COL_NAME  = 40
-local COL_KILLS = 225
-local COL_DEATH = 285
-local COL_KD    = 345
-local COL_BEST  = 395
-local COL_HS    = 445
+local COL_RANK  = 20
+local COL_NAME  = 80
+local COL_KILLS = 450
+local COL_DEATH = 570
+local COL_KD    = 690
+local COL_BEST  = 790
+local COL_HS    = 890
 
 -- =============================================================================
 -- SORT MODE DEFINITIONS
@@ -286,7 +286,7 @@ local HEADERS = {
 -- @param w number - panel width
 -- @param y number - y offset to draw at
 local function DrawHeaders(w, y)
-	draw.RoundedBox(0, 0, y, w, HEADER_H, COLOR_HEADER_BG)
+	draw.RoundedBox(0, 2, y, w - 4, HEADER_H, COLOR_HEADER_BG)
 
 	local activeCol = SORT_MODES[currentSortIndex].col
 
@@ -306,7 +306,7 @@ end
 -- @param row table - display row strings {rank, name, kills, deaths, kd, best, hs}
 local function DrawDataRow(w, y, i, row)
 	local rowBg = (i % 2 == 0) and COLOR_ROW_EVEN or COLOR_ROW_ODD
-	draw.RoundedBox(0, 0, y, w, ROW_H, rowBg)
+	draw.RoundedBox(0, 2, y, w - 4, ROW_H, rowBg)
 
 	local rankColor = COLOR_WHITE
 	if i == 1 then rankColor = COLOR_GOLD
@@ -367,12 +367,12 @@ function PVPLeaderboard.DrawBoard(w)
 	local h = TITLE_H + HEADER_H + ROW_H * 10 + PAD
 
 	-- Background panel with thin border
-	draw.RoundedBox(4, 0, 0, w, h, COLOR_BG)
+	draw.RoundedBox(8, 0, 0, w, h, COLOR_BG)
 	surface.SetDrawColor(COLOR_BORDER)
-	surface.DrawOutlinedRect(0, 0, w, h, 1)
+	surface.DrawOutlinedRect(0, 0, w, h, 2)
 
 	-- Title bar (crimson red, rounded top corners only)
-	draw.RoundedBoxEx(4, 0, 0, w, TITLE_H, COLOR_TITLE_BG, true, true, false, false)
+	draw.RoundedBoxEx(8, 0, 0, w, TITLE_H, COLOR_TITLE_BG, true, true, false, false)
 	draw.SimpleText(
 		"ALL TIME PVP RECORD", "PVPLeaderboard_Title",
 		w / 2, TITLE_H / 2,
@@ -386,7 +386,7 @@ function PVPLeaderboard.DrawBoard(w)
 	if #board == 0 then
 		draw.SimpleText(
 			"No PVP data recorded yet.", "PVPLeaderboard_Empty",
-			w / 2, y + 30,
+			w / 2, y + 60,
 			COLOR_EMPTY, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
 		)
 		return
@@ -510,7 +510,7 @@ net.Receive("PVPLeaderboard_OpenBoard", function()
 		PVPLeaderboard.Panel:Remove()
 	end
 
-	local panelW = 470
+	local panelW = 940
 	local fixedH = TITLE_H + HEADER_H
 	local scrollH = ROW_H * 10 + PAD
 	local panelH = fixedH + scrollH
@@ -526,11 +526,11 @@ net.Receive("PVPLeaderboard_OpenBoard", function()
 
 	-- Paint fixed header: background, title bar, and column headers
 	frame.Paint = function(self, w, h)
-		draw.RoundedBox(4, 0, 0, w, h, COLOR_BG)
+		draw.RoundedBox(8, 0, 0, w, h, COLOR_BG)
 		surface.SetDrawColor(COLOR_BORDER)
-		surface.DrawOutlinedRect(0, 0, w, h, 1)
+		surface.DrawOutlinedRect(0, 0, w, h, 2)
 
-		draw.RoundedBoxEx(4, 0, 0, w, TITLE_H, COLOR_TITLE_BG, true, true, false, false)
+		draw.RoundedBoxEx(8, 0, 0, w, TITLE_H, COLOR_TITLE_BG, true, true, false, false)
 		draw.SimpleText(
 			"ALL TIME PVP RECORD", "PVPLeaderboard_Title",
 			w / 2, TITLE_H / 2,
@@ -556,7 +556,7 @@ net.Receive("PVPLeaderboard_OpenBoard", function()
 		if #displayRows == 0 then
 			draw.SimpleText(
 				"No PVP data recorded yet.", "PVPLeaderboard_Empty",
-				w / 2, 30,
+				w / 2, 60,
 				COLOR_EMPTY, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
 			)
 			return
