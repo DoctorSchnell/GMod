@@ -1,6 +1,6 @@
 # PVP Leaderboard
 
-Persistent PVP leaderboard for Garry's Mod sandbox servers. Tracks kills, deaths, K/D ratio, kill streaks, and headshots across server reboots. Displays stats on spawnable floating sign entities (small, medium, large) with metal-framed 3D mesh rendering and leaderboard content on both faces. Works immediately on spawn, including after Perm Props re-creation.
+Persistent PVP leaderboard for Garry's Mod sandbox servers. Tracks kills, deaths, K/D ratio, kill streaks, and headshots across server reboots. Displays stats on a spawnable metal-framed floating sign entity with 3D2D rendering on both faces. Always shows 10 rows. Uses a PHX plate for collision (Perm Props compatible). Works immediately on spawn, including after Perm Props re-creation.
 
 ## Requirements
 
@@ -39,37 +39,28 @@ All ConVars use `FCVAR_ARCHIVE + FCVAR_REPLICATED + FCVAR_NOTIFY` flags. They pe
 |---|---|---|
 | `!pvpstats` | All | View your own PVP stats in chat |
 | `!pvpstats <player>` | Admin | View another player's PVP stats |
+| `!pvpboard` | All | Open the leaderboard as a draggable on-screen panel |
 | `!pvpreset <player>` | SuperAdmin | Reset a player's stats to zero |
 | `!pvpresetall` | SuperAdmin | Wipe the entire leaderboard (cannot be undone) |
 
-## Entities
+## Entity
 
-All three sizes are spawnable from the Entities tab in the spawn menu under the **PVP Leaderboard** category.
+Spawn from the Entities tab in the spawn menu under the **PVP Leaderboard** category.
 
-| Entity | Approximate Sign Width | Approximate Sign Height |
+| Entity | Backing Model | Display Size |
 |---|---|---|
-| PVP Leaderboard (Small) | ~47 units / 4 ft | ~30 units / 2.5 ft |
-| PVP Leaderboard (Medium) | ~94 units / 8 ft | ~60 units / 5 ft |
-| PVP Leaderboard (Large) | ~188 units / 16 ft | ~120 units / 10 ft |
+| PVP Leaderboard | `plate3x5.mdl` | ~235 x 144 game units |
 
-All entities:
-- Render as metal-framed floating signs (dark gunmetal frame, charcoal panel) using custom 3D mesh — same style as the AFK System overhead sign
-- Display the leaderboard on both the front and back faces
-- Have solid collision via `PhysicsInitBox` matching the sign dimensions
-- Display data immediately on spawn by reading from the client-side cache
-- Work with Perm Props (data loads from the database on server start, before entities spawn)
-- Skip 3D2D rendering beyond a size-appropriate distance for performance
+The entity:
+- Renders as a metal-framed floating sign (dark gunmetal frame, charcoal panel) using custom 3D mesh — same style as the AFK System overhead sign
+- Displays the leaderboard on both the front and back faces
+- Always reserves space for 10 rows (blank space shown if fewer entries exist)
+- Has solid collision via a hidden PHX 3x5 plate (Perm Props compatible)
+- Freezes on spawn and re-freezes after physgun placement for stable wall mounting
+- Displays data immediately on spawn by reading from the client-side cache
+- Skips rendering beyond ~1500 units for performance
 
-Place with the physgun like any prop. The sign renders vertically and follows the entity's yaw orientation.
-
-### Adjusting Sign Appearance
-
-Per-size constants at the top of each entity's `cl_init.lua`:
-- `SCALE` - 3D2D-to-world-unit scale factor (determines sign size)
-- `BORDER_SIZE` - metal frame border width in world units
-- `RENDER_DIST_SQ` - squared distance cutoff for rendering
-
-These may need fine-tuning in-game after first deployment.
+Place with the physgun like any prop. The sign renders vertically and follows the entity's orientation.
 
 ## Stats Tracked
 
@@ -104,12 +95,14 @@ Server: SQLite DB --> In-memory cache --> Net broadcast --> Clients
                          ^                                    |
                          |                                    v
                     PlayerDeath hook              Entity 3D2D rendering
-                    (with PVPCombat gate)         (reads client cache)
+                    (with PVPCombat gate)         VGUI panel (!pvpboard)
+                                                  (both read client cache)
 ```
 
 The server maintains a cached copy of the top N players. This cache refreshes after every kill and on a configurable periodic timer. Entities never query the database directly. Clients receive the cache via net messages and store a local copy that entities read during 3D2D rendering.
 
 ## Version History
 
+- **2.0.0** - Consolidated three entity sizes (small/medium/large) into a single `pvp_leaderboard` entity backed by a hidden PHX 3x5 plate for collision and Perm Props compatibility. Metal-framed floating sign with 3D2D content on both faces, fixed layout to always show 10 rows. Added `!pvpboard` command to open an on-screen leaderboard panel. Renamed title to "ALL TIME PVP RECORD". Signs re-freeze after physgun placement.
 - **1.1.0** - Replaced PHX plate backing props with metal-framed floating sign rendering (AFK System style). Signs are solid with custom collision, display leaderboard on both faces.
 - **1.0.0** - Initial release

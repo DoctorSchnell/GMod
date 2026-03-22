@@ -92,17 +92,16 @@ local COL_BEST  = 385
 local COL_HS    = 440
 
 --- Draw the full leaderboard at the current 3D2D origin.
--- Both wall and kiosk entities call this from their Draw functions.
+-- Called by the entity Draw function and the VGUI panel.
 -- Drawing starts at (0, 0) and extends right/down.
+-- Always reserves space for 10 rows regardless of entry count.
 -- @param w number - screen width in 3D2D units
 function PVPLeaderboard.DrawBoard(w)
 	local board = PVPLeaderboard.ClientCache or {}
 	local numEntries = #board
 
-	-- Calculate total height based on number of entries.
-	-- Minimum height accommodates the "no data" message.
-	local contentH = TITLE_H + HEADER_H + ROW_H * math.max(numEntries, 3) + PAD
-	local h = contentH
+	-- Fixed height for 10 rows (matches plate3x5 dimensions)
+	local h = TITLE_H + HEADER_H + ROW_H * 10 + PAD
 
 	-- Background panel with thin border
 	draw.RoundedBox(4, 0, 0, w, h, COLOR_BG)
@@ -112,7 +111,7 @@ function PVPLeaderboard.DrawBoard(w)
 	-- Title bar (crimson red, rounded top corners only)
 	draw.RoundedBoxEx(4, 0, 0, w, TITLE_H, COLOR_TITLE_BG, true, true, false, false)
 	draw.SimpleText(
-		"PVP LEADERBOARD", "PVPLeaderboard_Title",
+		"ALL TIME PVP RECORD", "PVPLeaderboard_Title",
 		w / 2, TITLE_H / 2,
 		COLOR_WHITE, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
 	)
@@ -141,8 +140,9 @@ function PVPLeaderboard.DrawBoard(w)
 		return
 	end
 
-	-- Data rows: one per leaderboard entry
+	-- Data rows: one per leaderboard entry (capped at 10)
 	for i, entry in ipairs(board) do
+		if i > 10 then break end
 		-- Alternating row backgrounds for readability
 		local rowBg = (i % 2 == 0) and COLOR_ROW_EVEN or COLOR_ROW_ODD
 		draw.RoundedBox(0, 0, y, w, ROW_H, rowBg)
@@ -215,134 +215,6 @@ function PVPLeaderboard.DrawBoard(w)
 end
 
 -------------------------------------------------
--- 3D SIGN RENDERING
--------------------------------------------------
-
--- Vertex-colored material for the sign mesh (fully opaque)
-local matSign = CreateMaterial("PVPLB_SignMat_" .. SysTime(), "UnlitGeneric", {
-	["$basetexture"] = "color/white",
-	["$vertexcolor"] = 1,
-	["$vertexalpha"] = 0,
-	["$nolod"] = 1,
-})
-
---- Emit one quad (4 vertices) into the active mesh.Begin block.
-local function MeshQuad(p1, p2, p3, p4, normal, col)
-	mesh.Position(p1) mesh.Normal(normal) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 0, 0) mesh.AdvanceVertex()
-	mesh.Position(p2) mesh.Normal(normal) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 1, 0) mesh.AdvanceVertex()
-	mesh.Position(p3) mesh.Normal(normal) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 1, 1) mesh.AdvanceVertex()
-	mesh.Position(p4) mesh.Normal(normal) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 0, 1) mesh.AdvanceVertex()
-end
-
---- Draw a 6-faced box from 8 corners with per-face-group colors.
-local function DrawMeshBox(ftl, ftr, fbr, fbl, btl, btr, bbr, bbl, faceCol, sideCol, topCol, nF, nR, nU)
-	render.SetMaterial(matSign)
-
-	for _, cullMode in ipairs({MATERIAL_CULLMODE_CW, MATERIAL_CULLMODE_CCW}) do
-		render.CullMode(cullMode)
-		mesh.Begin(MATERIAL_QUADS, 6)
-			MeshQuad(fbl, fbr, ftr, ftl, nF, faceCol)
-			MeshQuad(bbr, bbl, btl, btr, -nF, faceCol)
-			MeshQuad(fbr, bbr, btr, ftr, nR, sideCol)
-			MeshQuad(bbl, fbl, ftl, btl, -nR, sideCol)
-			MeshQuad(ftl, ftr, btr, btl, nU, topCol)
-			MeshQuad(bbl, bbr, fbr, fbl, -nU, sideCol)
-		mesh.End()
-	end
-
-	render.CullMode(MATERIAL_CULLMODE_CCW)
-end
-
---- Compute 8 corners of a box centered at `pos` with half-extents along ri, up, fw.
-local function BoxCorners(pos, ri, up, fw)
-	local ftl = pos + fw - ri + up
-	local ftr = pos + fw + ri + up
-	local fbr = pos + fw + ri - up
-	local fbl = pos + fw - ri - up
-	local btl = pos - fw - ri + up
-	local btr = pos - fw + ri + up
-	local bbr = pos - fw + ri - up
-	local bbl = pos - fw - ri - up
-	return ftl, ftr, fbr, fbl, btl, btr, bbr, bbl
-end
-
--- Metal frame colors (dark gunmetal)
-local FRAME_FACE = Color(55, 55, 60)
-local FRAME_SIDE = Color(40, 40, 45)
-local FRAME_TOP  = Color(70, 70, 75)
-
--- Sign panel colors (dark charcoal, near COLOR_BG)
-local PANEL_FACE = Color(20, 20, 25)
-local PANEL_SIDE = Color(15, 15, 20)
-local PANEL_TOP  = Color(25, 25, 30)
-
--- Sign depth in world units
-local SIGN_DEPTH = 3
-
---- Draw a metal-framed 3D sign with the leaderboard on both faces.
--- Called by entity Draw functions. Renders the mesh frame, inner panel,
--- and leaderboard content on the front and back.
--- @param pos      Vector - entity world position (sign center)
--- @param yaw      number - entity yaw angle in degrees
--- @param screenW  number - leaderboard width in 3D2D units
--- @param scale    number - 3D2D-to-world-unit scale factor
--- @param border   number - frame border width in world units
-function PVPLeaderboard.DrawSign(pos, yaw, screenW, scale, border)
-	local board = PVPLeaderboard.ClientCache or {}
-	local numEntries = #board
-
-	-- Content height matching DrawBoard layout
-	local contentH = TITLE_H + HEADER_H + ROW_H * math.max(numEntries, 3) + PAD
-
-	-- Half-extents of the content area in world units
-	local halfW = (screenW * scale) / 2
-	local halfH = (contentH * scale) / 2
-	local halfD = SIGN_DEPTH / 2
-
-	-- Sign orientation (vertical, follows entity yaw)
-	local frontAng = Angle(0, yaw - 90, 90)
-	local signRight  = frontAng:Forward()
-	local signUp     = Vector(0, 0, 1)
-	local signNormal = signRight:Cross(signUp)
-	signNormal:Normalize()
-
-	-- Outer frame (metal border around the panel)
-	local frameHalfW = halfW + border
-	local frameHalfH = halfH + border
-	local fri = signRight * frameHalfW
-	local fup = signUp * frameHalfH
-	local ffw = signNormal * halfD
-	local f1, f2, f3, f4, f5, f6, f7, f8 = BoxCorners(pos, fri, fup, ffw)
-	DrawMeshBox(f1, f2, f3, f4, f5, f6, f7, f8, FRAME_FACE, FRAME_SIDE, FRAME_TOP, signNormal, signRight, signUp)
-
-	-- Inner panel (flush with frame, slightly protruding front/back)
-	local panelHalfD = halfD + 0.1
-	local pri = signRight * halfW
-	local pup = signUp * halfH
-	local pfw = signNormal * panelHalfD
-	local p1, p2, p3, p4, p5, p6, p7, p8 = BoxCorners(pos, pri, pup, pfw)
-	DrawMeshBox(p1, p2, p3, p4, p5, p6, p7, p8, PANEL_FACE, PANEL_SIDE, PANEL_TOP, signNormal, signRight, signUp)
-
-	-- Front face: leaderboard content (origin at top-left of content area)
-	local frontTextPos = pos + signNormal * (panelHalfD + 0.1)
-		- signRight * halfW
-		+ signUp * halfH
-	cam.Start3D2D(frontTextPos, frontAng, scale)
-		PVPLeaderboard.DrawBoard(screenW)
-	cam.End3D2D()
-
-	-- Back face: mirrored leaderboard content
-	local backAng = Angle(0, yaw + 90, 90)
-	local backRight = backAng:Forward()
-	local backTextPos = pos - signNormal * (panelHalfD + 0.1)
-		- backRight * halfW
-		+ signUp * halfH
-	cam.Start3D2D(backTextPos, backAng, scale)
-		PVPLeaderboard.DrawBoard(screenW)
-	cam.End3D2D()
-end
-
--------------------------------------------------
 -- NET RECEIVERS
 -------------------------------------------------
 
@@ -402,6 +274,31 @@ net.Receive("PVPLeaderboard_PlayerStats", function()
 			kills, deaths, kd, streak, best, headshots
 		)
 	)
+end)
+
+--- Open the leaderboard as a VGUI panel (response to !pvpboard).
+net.Receive("PVPLeaderboard_OpenBoard", function()
+	-- Close existing panel if already open
+	if IsValid(PVPLeaderboard.Panel) then
+		PVPLeaderboard.Panel:Remove()
+	end
+
+	local panelW = 470
+	local panelH = TITLE_H + HEADER_H + ROW_H * 10 + PAD
+
+	local frame = vgui.Create("DFrame")
+	frame:SetTitle("")
+	frame:SetSize(panelW, panelH)
+	frame:Center()
+	frame:MakePopup()
+	frame:SetDraggable(true)
+	frame.btnMaxim:SetVisible(false)
+	frame.btnMinim:SetVisible(false)
+	frame.Paint = function(self, w, h)
+		PVPLeaderboard.DrawBoard(w)
+	end
+
+	PVPLeaderboard.Panel = frame
 end)
 
 -------------------------------------------------

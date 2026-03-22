@@ -18,11 +18,34 @@ util.AddNetworkString("PVPLeaderboard_SyncCache")
 -- Client request: player asks for the current cache (on join, entity spawn)
 util.AddNetworkString("PVPLeaderboard_RequestSync")
 
+-- Open leaderboard panel: signals a client to open the VGUI leaderboard
+util.AddNetworkString("PVPLeaderboard_OpenBoard")
+
 -- Individual stats: server sends one player's full stats (for !pvpstats)
 util.AddNetworkString("PVPLeaderboard_PlayerStats")
 
 -- Config change: XGUI panel sends a ConVar update to the server
 util.AddNetworkString("PVPLeaderboard_ConfigChange")
+
+-------------------------------------------------
+-- ENTITY PHYSICS
+-------------------------------------------------
+
+-- Leaderboard sign classes that use frozen physics for stable placement.
+local SIGN_CLASSES = {
+	pvp_leaderboard = true,
+}
+
+-- Re-freeze leaderboard signs after physgun placement.
+-- The backing plate model wants to settle flat; freezing prevents that.
+hook.Add("PhysgunDrop", "PVPLeaderboard_FreezeOnDrop", function(ply, ent)
+	if not SIGN_CLASSES[ent:GetClass()] then return end
+
+	local phys = ent:GetPhysicsObject()
+	if IsValid(phys) then
+		phys:EnableMotion(false)
+	end
+end)
 
 -------------------------------------------------
 -- DATABASE SCHEMA

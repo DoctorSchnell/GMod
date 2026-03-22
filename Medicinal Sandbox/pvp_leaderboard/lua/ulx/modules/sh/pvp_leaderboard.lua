@@ -50,6 +50,24 @@ pvpstats:defaultAccess(ULib.ACCESS_ALL)
 pvpstats:help("View a player's PVP stats (or your own if no player specified).")
 
 -------------------------------------------------
+-- !pvpboard - Open the leaderboard panel on screen
+-------------------------------------------------
+
+function ulx.pvpboard(calling_ply)
+	if not IsValid(calling_ply) then
+		ULib.tsayError(calling_ply, "This command must be run by a player.")
+		return
+	end
+
+	net.Start("PVPLeaderboard_OpenBoard")
+	net.Send(calling_ply)
+end
+
+local pvpboard = ulx.command("PVP Leaderboard", "ulx pvpboard", ulx.pvpboard, "!pvpboard")
+pvpboard:defaultAccess(ULib.ACCESS_ALL)
+pvpboard:help("Open the PVP leaderboard panel on screen.")
+
+-------------------------------------------------
 -- !pvpreset <player> - Reset one player's stats
 -------------------------------------------------
 
