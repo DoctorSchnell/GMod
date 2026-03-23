@@ -2,7 +2,7 @@
 
 Custom Garry's Mod server addons by **Doctor Schnell & Claude (Anthropic)**.
 
-A collection of 8 production-quality addons built for a public sandbox server (5-10 players). These fill gaps and resolve conflicts between third-party mods, with a focus on clean architecture, security, and good UX.
+A collection of 8 production-ready addons built for a public sandbox server (5-10 players). These fill gaps and resolve conflicts between third-party mods, with a focus on clean architecture, security, and good UX.
 
 ## Addons
 
