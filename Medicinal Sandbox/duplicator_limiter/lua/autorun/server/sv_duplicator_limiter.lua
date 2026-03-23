@@ -212,11 +212,17 @@ local function ProcessNextBatch(sid)
             job.CreatedEntities[k] = ent
 
             -- Freeze unfrozen entities so they don't fall/scatter while
-            -- remaining batches are still being spawned
+            -- remaining batches are still being spawned, and register
+            -- all frozen physics with the player so double-tap R works.
+            -- (The original Paste sets ActionPlayer for this, but we
+            -- call CreateEntityFromTable directly so it stays nil.)
             local phys = ent:GetPhysicsObject()
-            if IsValid(phys) and phys:IsMotionEnabled() then
-                phys:EnableMotion(false)
-                job.WasUnfrozen[k] = true
+            if IsValid(phys) then
+                if phys:IsMotionEnabled() then
+                    phys:EnableMotion(false)
+                    job.WasUnfrozen[k] = true
+                end
+                job.Player:AddFrozenPhysicsObject(ent, phys)
             end
         elseif not ok then
             ErrorNoHalt("[DupLimiter] CreateEntityFromTable error: " .. tostring(ent) .. "\n")

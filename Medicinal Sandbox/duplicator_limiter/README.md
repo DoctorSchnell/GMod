@@ -1,4 +1,4 @@
-# Duplicator Limiter v1.1.0
+# Duplicator Limiter v1.1.1
 
 Rate-limits the built-in Duplicator tool by batching entity creation across multiple server ticks. Prevents server crashes from large workshop duplications that would otherwise spawn hundreds of entities in a single frame.
 
@@ -73,6 +73,7 @@ garrysmod/addons/duplicator_limiter/
 
 ## Version History
 
+- **1.1.1** — Fix double-tap R unfreeze for batched entities.
 - **1.1.0** — FPP anti-spam bypass during batched pastes.
 - **1.0.0** — Initial release.
 
