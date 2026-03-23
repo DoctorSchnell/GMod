@@ -1,0 +1,11 @@
+{
+	"title": "Duplicator Limiter",
+	"type": "serveronly",
+	"tags": [ "admin" ],
+	"description": "Rate-limits the built-in Duplicator tool by batching entity creation across multiple server ticks. Prevents server crashes from large workshop duplications. Configurable batch size, entity cap, cooldown, and admin bypass with XGUI settings panel.",
+	"author": "Doctor Schnell & Claude (Anthropic)",
+	"version": "1.0.0",
+	"ignore": [
+		"*.md"
+	]
+}
