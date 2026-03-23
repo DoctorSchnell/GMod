@@ -234,6 +234,23 @@ local function ProcessNextBatch(sid)
 end
 
 -- =============================================================================
+-- FPP ANTI-SPAM BYPASS
+-- =============================================================================
+-- FPP's anti-spam ghosts or removes entities spawned too quickly.  During a
+-- batched paste our addon already rate-limits via batch size, cooldown, and
+-- entity cap, so FPP's per-entity anti-spam is redundant and would break the
+-- paste.  Returning false from this hook tells FPP to skip anti-spam checks
+-- for entities created by an active batched paste.
+
+hook.Add("FPP_ShouldRegisterAntiSpam", "DupLimiter_BypassFPP", function(ply, ent, IsDuplicate)
+    if not IsValid(ply) then return end
+    local sid = ply:SteamID()
+    if pasteJobs[sid] then
+        return false
+    end
+end)
+
+-- =============================================================================
 -- CLEANUP
 -- =============================================================================
 
