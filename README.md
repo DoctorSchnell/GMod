@@ -2,7 +2,7 @@
 
 Custom Garry's Mod server addons by **Doctor Schnell & Claude (Anthropic)**.
 
-A collection of 8 production-ready addons built for a public sandbox server (5-10 players). These fill gaps and resolve conflicts between third-party mods, with a focus on clean architecture, security, and good UX.
+8 addons for a public sandbox server (5-10 players). These fill gaps and resolve conflicts between third-party mods.
 
 ## Addons
 
@@ -19,48 +19,46 @@ A collection of 8 production-ready addons built for a public sandbox server (5-1
 
 ### ACF Killfeed Fix
 
-Removes ACF's custom killfeed hooks after initialization to prevent duplicate death notices. Fully automatic — no configuration needed.
+Removes ACF's custom killfeed hooks after initialization to prevent duplicate death notices. No configuration needed.
 
 ### AFK System
 
-Full-featured AFK system with a 3D spinning metal-framed overhead sign, Sui Scoreboard integration (row dimming), auto-AFK timeout with activity monitoring, and ULX commands (`!afk`, `!forceafk`, `!unafk`, `!afktime`). Configurable via XGUI settings panel.
+3D spinning overhead sign, Sui Scoreboard integration (row dimming), auto-AFK timeout, and ULX commands (`!afk`, `!forceafk`, `!unafk`, `!afktime`). Configurable via XGUI.
 
 ### Buildmode Enhancements
 
-Protects buildmode players' props and entities from all damage sources — ACF, HL2 weapons, physics, and more. Also prevents buildmode players from dealing ACF damage to others. Works automatically alongside Buildmode-ULX.
+Protects buildmode players' props and entities from all damage sources (ACF, HL2 weapons, physics). Also prevents buildmode players from dealing ACF damage. Works automatically alongside Buildmode-ULX.
 
 ### CW 2.0 Extra Ammo
 
-Grants players additional reserve ammo on spawn for CW 2.0 and other weapons using standard GMod ammo conventions. Calculates reserve ammo based on magazine capacity with configurable multipliers.
+Grants extra reserve ammo on spawn for CW 2.0 and other weapons. Calculates reserve ammo from magazine capacity with configurable multipliers.
 
 ### Duplicator Limiter
 
-Rate-limits the Duplicator tool by batching entity creation across multiple server ticks, preventing crashes from large workshop duplications. Features entity caps, per-player cooldowns, admin bypass, and an XGUI settings panel.
+Batches Duplicator entity creation across multiple server ticks to prevent crashes from large workshop duplications. Entity caps, per-player cooldowns, admin bypass. XGUI settings panel.
 
 ### PVP Combat Timer
 
-Detects PVP combat and restricts spawning/pickup of configurable entities during a cooldown period. Includes a HUD countdown with progress bar, configurable blocklist, buildmode exemption, and XGUI settings. ULX commands for testing and clearing combat state.
+Tags players in PVP combat and restricts entity spawning/pickup during a cooldown. HUD countdown, configurable blocklist, buildmode exemption. XGUI settings and ULX commands for testing/clearing state.
 
 ### PVP Leaderboard
 
-Persistent PVP leaderboard tracking kills, deaths, K/D ratio, streaks, and headshots. Displays on a spawnable metal-framed floating sign with 3D2D rendering and split-flap animation. Data stored in SQLite. Includes a draggable on-screen panel (`!pvpboard`) and auto-cycling sort modes.
+Tracks kills, deaths, K/D, streaks, and headshots in SQLite. Displays on a spawnable 3D2D floating sign with split-flap animation. Also has a draggable on-screen panel (`!pvpboard`) with auto-cycling sort.
 
 ### Spawn Protection ULX Patch
 
-Companion addon for the Workshop Spawn Protection addon (ID: 3401291379). Provides an XGUI settings panel for dedicated server configuration, plus a CW 2.0 flashbang compatibility fix. Does not modify the original Workshop addon.
+XGUI settings panel for the Workshop Spawn Protection addon (ID: 3401291379). Includes a CW 2.0 flashbang compatibility fix. Does not modify the original Workshop addon.
 
 ## Dependencies
 
-These addons are built to work with the following third-party addons:
+Not all dependencies are required by every addon. See individual READMEs for specific requirements.
 
-- **ULX/ULib + XGUI** — admin framework and settings UI
-- **Sui Scoreboard** (ZionDevelopers) — custom scoreboard
-- **ACF 2** (nrlulz/ACF) — armoured combat framework
-- **CW 2.0** — Customizable Weaponry
-- **PAC3** — player appearance customizer
-- **Buildmode-ULX** (kythre) — build mode system
-
-Not all dependencies are required by every addon — see individual README files for specific requirements.
+- **ULX/ULib + XGUI** - admin framework and settings UI
+- **Sui Scoreboard** (ZionDevelopers) - custom scoreboard
+- **ACF 2** (nrlulz/ACF) - armoured combat framework
+- **CW 2.0** - Customizable Weaponry
+- **PAC3** - player appearance customizer
+- **Buildmode-ULX** (kythre) - build mode system
 
 ## Installation
 
@@ -82,4 +80,4 @@ Copy the desired addon folders from `Medicinal Sandbox/` into your server's `add
 
 ## License
 
-Public domain — use, modify, and distribute freely. No attribution required.
+Public domain - use, modify, and distribute freely. No attribution required.
