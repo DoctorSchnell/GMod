@@ -23,6 +23,32 @@ function ENT:Initialize()
 	end
 end
 
+-- Prevent explosive blast force from moving the entity.
+-- PhysicsSimulate only fires when the physics object is awake, so this has
+-- zero cost while frozen. If something wakes the object, we immediately zero
+-- all velocity so it never visibly moves. IsPlayerHolding() allows normal
+-- physgun interaction.
+function ENT:PhysicsSimulate(phys, deltatime)
+	if not self:IsPlayerHolding() then
+		phys:SetVelocity(Vector(0, 0, 0))
+		phys:SetAngleVelocity(Vector(0, 0, 0))
+		return SIM_NOTHING
+	end
+end
+
+-- Re-freeze the physics object after something wakes it (e.g. explosion).
+-- Throttled to 4x/sec — just puts the object back to sleep.
+function ENT:Think()
+	if not self:IsPlayerHolding() then
+		local phys = self:GetPhysicsObject()
+		if IsValid(phys) and phys:IsMotionEnabled() then
+			phys:EnableMotion(false)
+		end
+	end
+	self:NextThink(CurTime() + 0.25)
+	return true
+end
+
 -- Block standard GMod damage (bullets, explosions, fire, etc.)
 function ENT:OnTakeDamage(dmginfo)
 	return false

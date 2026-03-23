@@ -1,4 +1,4 @@
-# PVP Leaderboard v2.2.1
+# PVP Leaderboard v2.2.2
 
 Persistent PVP leaderboard for Garry's Mod sandbox servers. Tracks kills, deaths, K/D ratio, kill streaks, and headshots across server reboots. Displays stats on a spawnable metal-framed floating sign entity with 3D2D rendering on both faces.
 
@@ -102,6 +102,7 @@ garrysmod/addons/pvp_leaderboard/
 
 ## Version History
 
+- **2.2.2** — Fix leaderboard entity being unfrozen by explosive blast force.
 - **2.2.1** — 2x text resolution rendering, row/border alignment fixes, vertical spacing tuning.
 - **2.2.0** — Auto-cycling sort mode (Kills → K/D → Best Streak → Headshots) with split-flap transition animation. Active sort column highlighted in header. Configurable cycle interval via `pvplb_sort_interval`.
 - **2.1.0** — Entity is now invulnerable to all damage including ACF projectiles.
