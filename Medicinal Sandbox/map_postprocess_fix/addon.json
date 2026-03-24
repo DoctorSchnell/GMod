@@ -1,0 +1,9 @@
+{
+    "title": "Map Post-Process Fix",
+    "type": "tool",
+    "tags": ["admin", "visual", "hdr"],
+    "ignore": ["*.md", ".git/*"],
+    "author": "Doctor Schnell",
+    "version": "1.2.0",
+    "description": "Server-enforced per-map HDR, bloom, and specular overrides. Fixes overbright maps without requiring client action."
+}
