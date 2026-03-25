@@ -1,9 +1,0 @@
-{
-    "title": "Spawn Protection Enhancements",
-    "description": "Enhances the Spawn Protection Workshop addon with XGUI settings, cancel-on-fire, CW 2.0 compatibility fix, and dedicated server ConVar sync.",
-    "author": "Doctor Schnell & Claude (Anthropic)",
-    "version": "3.0.0",
-    "ignore": [
-        "README.md"
-    ]
-}
