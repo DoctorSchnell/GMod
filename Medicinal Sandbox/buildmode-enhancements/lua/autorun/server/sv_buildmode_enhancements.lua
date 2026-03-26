@@ -1,11 +1,11 @@
 -- =============================================================================
---  Buildmode Enhancements v1.1.0
+--  Buildmode Enhancements v1.2.0
 --  Author: Doctor Schnell & Claude (Anthropic)
 --
 --  Protects props owned by buildmode players from all damage sources
 --  (ACF and standard Source engine), and prevents buildmode players
 --  from dealing ACF damage.
---  Works with: Buildmode-ULX (kythre) + ACF2 (and ACF extra weapons)
+--  Works with: Buildmode-ULX (kythre) + ACF3
 -- =============================================================================
 
 -- =============================================================================
@@ -70,27 +70,17 @@ hook.Add("EntityTakeDamage", "BuildmodeEnhancements_PropProtect", function(targe
 end)
 
 -- =============================================================================
--- ACF DAMAGE PROTECTION (ACF bypasses EntityTakeDamage)
+-- ACF3 DAMAGE PROTECTION (ACF bypasses EntityTakeDamage)
 -- =============================================================================
 
-hook.Add("Initialize", "BuildmodeEnhancements_ACFProtect", function()
-    timer.Simple(1, function()
-        if not ACF_Damage then return end
+hook.Add("ACF_PreDamageEntity", "BuildmodeEnhancements_ACFProtect", function(Entity, DmgResult, DmgInfo)
+    -- Block damage TO buildmode player props
+    if IsInBuildmode(GetPropOwner(Entity)) then
+        return false
+    end
 
-        local OriginalACF_Damage = ACF_Damage
-
-        function ACF_Damage(Entity, Energy, FrAera, Angle, Inflictor, Bone, ...)
-            -- Block damage TO buildmode player props
-            if IsInBuildmode(GetPropOwner(Entity)) then
-                return { Damage = 0, Overkill = 0, Loss = 0, Kill = false }
-            end
-
-            -- Block damage FROM buildmode players
-            if IsInBuildmode(GetAttacker(Inflictor)) then
-                return { Damage = 0, Overkill = 0, Loss = 0, Kill = false }
-            end
-
-            return OriginalACF_Damage(Entity, Energy, FrAera, Angle, Inflictor, Bone, ...)
-        end
-    end)
+    -- Block damage FROM buildmode players
+    if IsInBuildmode(GetAttacker(DmgInfo.Attacker)) then
+        return false
+    end
 end)

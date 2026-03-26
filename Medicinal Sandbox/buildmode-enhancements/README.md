@@ -1,4 +1,4 @@
-# Buildmode Enhancements v1.1.0
+# Buildmode Enhancements v1.2.0
 
 A server-side Garry's Mod addon that protects buildmode players' props and entities from all damage sources. Companion addon for [Buildmode-ULX](https://steamcommunity.com/sharedfiles/filedetails/?id=1308900979) by kythre.
 
@@ -12,7 +12,7 @@ A server-side Garry's Mod addon that protects buildmode players' props and entit
 ## Requirements
 
 - [Buildmode-ULX](https://steamcommunity.com/sharedfiles/filedetails/?id=1308900979) (by kythre)
-- [ACF Unofficial](https://steamcommunity.com/sharedfiles/filedetails/?id=1538829125) (Armoured Combat Framework) — optional, ACF protection is skipped if not present
+- [ACF-3](https://github.com/ACF-Team/ACF-3) (Armoured Combat Framework 3) — optional, ACF protection is skipped if not present
 - CPPI-compatible prop protection addon (optional, has fallback)
 
 ## Installation
@@ -37,6 +37,7 @@ garrysmod/addons/buildmode-enhancements/
 
 ## Version History
 
+- **1.2.0** — Migrated from ACF2 `ACF_Damage` wrapper to ACF3 `ACF_PreDamageEntity` hook.
 - **1.1.0** — Added general damage protection via `EntityTakeDamage` hook (covers HL2 weapons, physics, explosions, etc.). Renamed addon from "ACF Buildmode Protection" to "Buildmode Enhancements".
 - **1.0.0** — Initial release. ACF-only damage protection.
 
