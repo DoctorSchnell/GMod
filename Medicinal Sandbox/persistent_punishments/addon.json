@@ -1,0 +1,12 @@
+{
+	"title": "Persistent Punishments - ULX Extension",
+	"type": "serveronly",
+	"tags": [ "roleplay", "fun" ],
+	"description": "Extends ULX with persistent punishments (gag, mute, freeze, jail) that survive disconnects. Includes durations, reasons, admin notifications, and an XGUI management panel.",
+	"author": "Doctor Schnell & Claude (Anthropic)",
+	"version": "1.0.0",
+	"ignore": [
+		"*.psd",
+		"*.md"
+	]
+}
