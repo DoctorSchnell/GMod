@@ -1,5 +1,6 @@
 # Claude Code local context (not shared)
 CLAUDE.local.md
+.claude/
 
 # OS files
 Thumbs.db
