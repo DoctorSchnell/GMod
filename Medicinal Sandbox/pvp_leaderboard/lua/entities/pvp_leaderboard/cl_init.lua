@@ -113,6 +113,11 @@ local PANEL_TOP  = Color(28, 28, 33)
 -- RENDERING
 -- =============================================================================
 
+-- Rendered in the OPAQUE pass (see ENT.RenderGroup in shared.lua). The board is
+-- a solid dark panel, so drawing it opaque makes it write to the depth buffer —
+-- which lets later translucent objects (chat bubbles, sprites, particles) sort
+-- correctly behind it instead of being painted over the top. A translucent
+-- render group (the old setting) skips depth writes and caused that overdraw.
 function ENT:Draw()
 	-- Model is hidden; the mesh sign replaces it visually.
 

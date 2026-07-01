@@ -17,6 +17,6 @@ ENT.Author    = "Doctor Schnell & Claude (Anthropic)"
 ENT.Category  = "PVP Leaderboard"
 
 ENT.Spawnable = true
-ENT.RenderGroup = RENDERGROUP_TRANSLUCENT
+ENT.RenderGroup = RENDERGROUP_OPAQUE  -- opaque so it writes depth; see base entity
 
 ENT.Period    = "24h"
