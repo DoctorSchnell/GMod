@@ -35,15 +35,12 @@ util.AddNetworkString("PVPLeaderboard_SetSort")
 -- ENTITY PHYSICS
 -- =============================================================================
 
--- Leaderboard sign classes that use frozen physics for stable placement.
-local SIGN_CLASSES = {
-	pvp_leaderboard = true,
-}
-
 -- Re-freeze leaderboard signs after physgun placement.
 -- The backing plate model wants to settle flat; freezing prevents that.
+-- PVPLeaderboard.ClassToPeriod (from the shared file) covers all four sign
+-- classes (all-time + 24h/7d/30d).
 hook.Add("PhysgunDrop", "PVPLeaderboard_FreezeOnDrop", function(ply, ent)
-	if not SIGN_CLASSES[ent:GetClass()] then return end
+	if not PVPLeaderboard.ClassToPeriod[ent:GetClass()] then return end
 
 	local phys = ent:GetPhysicsObject()
 	if IsValid(phys) then
@@ -55,13 +52,17 @@ end)
 -- DATABASE SCHEMA
 -- =============================================================================
 
--- Table name prefixed to avoid namespace collisions with other addons.
-local TABLE_NAME = "pvp_leaderboard_stats"
+-- Table names prefixed to avoid namespace collisions with other addons.
+-- TABLE_NAME  - cumulative all-time aggregates (one row per player).
+-- EVENTS_TABLE - append-only kill event log (one row per validated kill),
+--                the source for the rolling 24h/7d/30d windowed boards.
+local TABLE_NAME   = "pvp_leaderboard_stats"
+local EVENTS_TABLE = "pvp_leaderboard_events"
 
--- Create the stats table if it does not already exist.
--- One row per unique player, keyed by SteamID64.
+-- Create the schema if it does not already exist.
 local function InitDatabase()
-	local query = string.format([[
+	-- All-time aggregate table: one row per unique player, keyed by SteamID64.
+	local statsQuery = string.format([[
 		CREATE TABLE IF NOT EXISTS %s (
 			steamid64 TEXT PRIMARY KEY,
 			name TEXT NOT NULL DEFAULT 'Unknown',
@@ -73,12 +74,33 @@ local function InitDatabase()
 		)
 	]], TABLE_NAME)
 
-	local result = sql.Query(query)
-	if result == false then
-		ServerLog("[PVP Leaderboard] ERROR: Failed to create database table: " .. (sql.LastError() or "unknown") .. "\n")
-	else
-		ServerLog("[PVP Leaderboard] Database table initialized.\n")
+	if sql.Query(statsQuery) == false then
+		ServerLog("[PVP Leaderboard] ERROR: Failed to create stats table: " .. (sql.LastError() or "unknown") .. "\n")
 	end
+
+	-- Event log: one row per validated kill, timestamped with os.time() (Unix
+	-- epoch, stable across map changes). Retained indefinitely; windowed boards
+	-- only ever range-query recent rows via the ts index below, so the table can
+	-- grow without degrading query cost.
+	local eventsQuery = string.format([[
+		CREATE TABLE IF NOT EXISTS %s (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			ts INTEGER NOT NULL,
+			attacker TEXT NOT NULL,
+			victim TEXT NOT NULL,
+			headshot INTEGER NOT NULL DEFAULT 0
+		)
+	]], EVENTS_TABLE)
+
+	if sql.Query(eventsQuery) == false then
+		ServerLog("[PVP Leaderboard] ERROR: Failed to create events table: " .. (sql.LastError() or "unknown") .. "\n")
+	end
+
+	-- Index on ts so windowed boards are a bounded range scan (cost scales with
+	-- the window length, not the total table size). Critical for unbounded retention.
+	sql.Query(string.format("CREATE INDEX IF NOT EXISTS idx_pvplb_events_ts ON %s (ts)", EVENTS_TABLE))
+
+	ServerLog("[PVP Leaderboard] Database tables initialized.\n")
 end
 
 -- Run schema creation immediately on load
@@ -174,43 +196,172 @@ function PVPLeaderboard.RecordDeath(ply)
 end
 
 --- Reset a single player's stats to zero.
+-- Zeroes the all-time aggregate row and deletes the player's *kill* events so
+-- they also drop off the windowed boards. Events where this player was the
+-- victim are kept, so other players retain their windowed kills against them.
 -- @param steamid64 string - the player's SteamID64
 function PVPLeaderboard.ResetPlayerStats(steamid64)
 	sql.Query(string.format(
 		"UPDATE %s SET kills = 0, deaths = 0, current_streak = 0, best_streak = 0, headshots = 0 WHERE steamid64 = %s",
 		TABLE_NAME, sql.SQLStr(steamid64)
 	))
+
+	sql.Query(string.format(
+		"DELETE FROM %s WHERE attacker = %s",
+		EVENTS_TABLE, sql.SQLStr(steamid64)
+	))
+
+	-- Rebuild the windowed aggregates so the change is reflected immediately.
+	PVPLeaderboard.RecomputeWindowAgg()
 end
 
---- Wipe the entire leaderboard (delete all rows).
+--- Wipe the entire leaderboard (delete all rows from both tables).
 function PVPLeaderboard.ResetAllStats()
 	sql.Query(string.format("DELETE FROM %s", TABLE_NAME))
+	sql.Query(string.format("DELETE FROM %s", EVENTS_TABLE))
+
+	-- Clear the in-memory windowed aggregates so windowed boards empty out.
+	PVPLeaderboard.RecomputeWindowAgg()
+end
+
+-- =============================================================================
+-- EVENT LOG & WINDOWED AGGREGATES
+-- =============================================================================
+--
+-- The rolling 24h/7d/30d boards are driven by in-memory aggregates kept in
+-- PVPLeaderboard.WindowAgg[periodId] = { steamid64 -> {kills, deaths, headshots,
+-- current_streak, best_streak} }. New kills are applied incrementally (O(1)) so
+-- the per-kill hot path never replays the event log; the authoritative replay
+-- (RecomputeWindowAgg) runs only on the periodic timer + at startup to drop
+-- kills that have aged out of each rolling window.
+
+PVPLeaderboard.WindowAgg = PVPLeaderboard.WindowAgg or {}
+for _, period in ipairs(PVPLeaderboard.Periods) do
+	if period.seconds > 0 then
+		PVPLeaderboard.WindowAgg[period.id] = PVPLeaderboard.WindowAgg[period.id] or {}
+	end
+end
+
+-- Fetch (or lazily create) a player's record within one period's aggregate.
+local function getRec(agg, sid)
+	local r = agg[sid]
+	if not r then
+		r = {kills = 0, deaths = 0, headshots = 0, current_streak = 0, best_streak = 0}
+		agg[sid] = r
+	end
+	return r
+end
+
+-- Apply one kill to a single period's aggregate (attacker +kill/+streak, victim
+-- +death/streak reset). Used both incrementally and during full replay.
+local function applyKill(agg, attackerSID, victimSID, isHeadshot)
+	local a = getRec(agg, attackerSID)
+	a.kills = a.kills + 1
+	if isHeadshot then a.headshots = a.headshots + 1 end
+	a.current_streak = a.current_streak + 1
+	if a.current_streak > a.best_streak then a.best_streak = a.current_streak end
+
+	local v = getRec(agg, victimSID)
+	v.deaths = v.deaths + 1
+	v.current_streak = 0
+end
+
+--- Record a validated kill in the event log and fold it into the windowed
+-- aggregates. A kill that just happened falls inside every rolling window, so
+-- it is applied to each one. No DB replay happens here (hot path stays O(1)).
+-- @param attackerSID string - attacker SteamID64
+-- @param victimSID string - victim SteamID64
+-- @param isHeadshot boolean
+function PVPLeaderboard.RecordEvent(attackerSID, victimSID, isHeadshot)
+	local hs = isHeadshot and 1 or 0
+
+	sql.Query(string.format(
+		"INSERT INTO %s (ts, attacker, victim, headshot) VALUES (%d, %s, %s, %d)",
+		EVENTS_TABLE, os.time(), sql.SQLStr(attackerSID), sql.SQLStr(victimSID), hs
+	))
+
+	for _, period in ipairs(PVPLeaderboard.Periods) do
+		if period.seconds > 0 then
+			local agg = PVPLeaderboard.WindowAgg[period.id]
+			if agg then applyKill(agg, attackerSID, victimSID, isHeadshot) end
+		end
+	end
+end
+
+--- Authoritative rebuild of every windowed aggregate from the event log.
+-- Replays only events newer than each window's cutoff (a bounded, ts-indexed
+-- range scan), which both seeds the aggregates at startup and drops kills that
+-- have aged out of the rolling window. Runs off the per-kill path.
+function PVPLeaderboard.RecomputeWindowAgg()
+	local now = os.time()
+
+	for _, period in ipairs(PVPLeaderboard.Periods) do
+		if period.seconds > 0 then
+			local cutoff = now - period.seconds
+			local agg = {}
+
+			local rows = sql.Query(string.format(
+				"SELECT attacker, victim, headshot FROM %s WHERE ts >= %d ORDER BY id ASC",
+				EVENTS_TABLE, cutoff
+			))
+
+			if rows then
+				for _, ev in ipairs(rows) do
+					applyKill(agg, ev.attacker, ev.victim, tonumber(ev.headshot) == 1)
+				end
+			end
+
+			PVPLeaderboard.WindowAgg[period.id] = agg
+		end
+	end
 end
 
 -- =============================================================================
 -- CACHE MANAGEMENT
 -- =============================================================================
+--
+-- PVPLeaderboard.CachedBoards[periodId] holds the top-N display board for each
+-- period. Entities/panels never query the database; they read net-synced copies
+-- of these caches. All-time is read from the aggregate table; the windowed
+-- boards are materialised from PVPLeaderboard.WindowAgg.
+PVPLeaderboard.CachedBoards = PVPLeaderboard.CachedBoards or {}
 
--- The in-memory cache holds the top N players sorted by kills (descending).
--- Entities never query the database directly; they read from this cache
--- delivered to clients via net messages.
-PVPLeaderboard.CachedBoard = PVPLeaderboard.CachedBoard or {}
+--- Resolve current display names for a set of SteamID64s from the aggregate
+-- table. Scoped to just the ids we are about to show (top N), so we never load
+-- the full players table.
+local function ResolveNames(sids)
+	local names = {}
+	if #sids == 0 then return names end
 
---- Rebuild the cache from the database. Reads the top N rows sorted by
--- kills descending, with best streak and headshots as tiebreakers.
-function PVPLeaderboard.RefreshCache()
-	local maxEntries = PVPLeaderboard.Config.MaxEntries or 10
+	local escaped = {}
+	for _, sid in ipairs(sids) do
+		escaped[#escaped + 1] = sql.SQLStr(sid)
+	end
 
-	local query = string.format(
+	local rows = sql.Query(string.format(
+		"SELECT steamid64, name FROM %s WHERE steamid64 IN (%s)",
+		TABLE_NAME, table.concat(escaped, ",")
+	))
+
+	if rows then
+		for _, row in ipairs(rows) do
+			names[row.steamid64] = row.name
+		end
+	end
+
+	return names
+end
+
+--- Build the all-time board from the cumulative aggregate table.
+local function BuildAllTimeBoard(maxEntries)
+	local rows = sql.Query(string.format(
 		"SELECT * FROM %s ORDER BY kills DESC, best_streak DESC, headshots DESC LIMIT %d",
 		TABLE_NAME, maxEntries
-	)
+	))
 
-	local result = sql.Query(query)
 	local board = {}
-
-	if result then
-		for i, row in ipairs(result) do
+	if rows then
+		for i, row in ipairs(rows) do
 			local kills = tonumber(row.kills) or 0
 			local deaths = tonumber(row.deaths) or 0
 
@@ -226,29 +377,94 @@ function PVPLeaderboard.RefreshCache()
 			}
 		end
 	end
+	return board
+end
 
-	PVPLeaderboard.CachedBoard = board
+--- Build a windowed board from its in-memory aggregate. Only players with at
+-- least one kill in the window appear (windowed boards are kill leaderboards).
+local function BuildWindowBoard(periodId, maxEntries)
+	local agg = PVPLeaderboard.WindowAgg[periodId] or {}
+
+	local board = {}
+	for sid, r in pairs(agg) do
+		if r.kills > 0 then
+			board[#board + 1] = {
+				steamid64      = sid,
+				kills          = r.kills,
+				deaths         = r.deaths,
+				kd             = r.deaths > 0 and math.Round(r.kills / r.deaths, 2) or r.kills,
+				current_streak = r.current_streak,
+				best_streak    = r.best_streak,
+				headshots      = r.headshots,
+			}
+		end
+	end
+
+	-- Same ordering as all-time: kills, then best streak, then headshots.
+	table.sort(board, function(a, b)
+		if a.kills ~= b.kills then return a.kills > b.kills end
+		if a.best_streak ~= b.best_streak then return a.best_streak > b.best_streak end
+		return a.headshots > b.headshots
+	end)
+
+	-- Trim to top N before resolving names (only look up names we will show).
+	while #board > maxEntries do
+		board[#board] = nil
+	end
+
+	local sids = {}
+	for _, e in ipairs(board) do sids[#sids + 1] = e.steamid64 end
+	local names = ResolveNames(sids)
+	for _, e in ipairs(board) do
+		e.name = names[e.steamid64] or "Unknown"
+	end
+
+	return board
+end
+
+--- Rebuild the display cache for every period. Cheap: all-time is one indexed
+-- query on the small aggregate table; windowed boards read in-memory aggregates
+-- (no event-log replay here — that is RecomputeWindowAgg's job).
+function PVPLeaderboard.RefreshCache()
+	local maxEntries = PVPLeaderboard.Config.MaxEntries or 10
+	local boards = {}
+
+	for _, period in ipairs(PVPLeaderboard.Periods) do
+		if period.seconds > 0 then
+			boards[period.id] = BuildWindowBoard(period.id, maxEntries)
+		else
+			boards[period.id] = BuildAllTimeBoard(maxEntries)
+		end
+	end
+
+	PVPLeaderboard.CachedBoards = boards
 end
 
 -- =============================================================================
 -- NET SYNC: SERVER -> CLIENT
 -- =============================================================================
 
---- Send the cached leaderboard to a specific player, or broadcast to all.
+--- Send all cached period boards to a specific player, or broadcast to all.
+-- Writes one block per period in PVPLeaderboard.Periods order; the client reads
+-- them back in the same order.
 -- @param target Player entity (optional) - if nil, broadcasts to everyone
 function PVPLeaderboard.SendCache(target)
-	local board = PVPLeaderboard.CachedBoard
+	local boards = PVPLeaderboard.CachedBoards or {}
 
 	net.Start("PVPLeaderboard_SyncCache")
-		net.WriteUInt(#board, 8)
-		for _, entry in ipairs(board) do
-			net.WriteString(entry.name)
-			net.WriteUInt(entry.kills, 16)
-			net.WriteUInt(entry.deaths, 16)
-			net.WriteUInt(entry.current_streak, 16)
-			net.WriteUInt(entry.best_streak, 16)
-			net.WriteUInt(entry.headshots, 16)
-			net.WriteString(entry.steamid64)
+		net.WriteUInt(#PVPLeaderboard.Periods, 4)
+		for _, period in ipairs(PVPLeaderboard.Periods) do
+			local board = boards[period.id] or {}
+			net.WriteUInt(#board, 8)
+			for _, entry in ipairs(board) do
+				net.WriteString(entry.name)
+				net.WriteUInt(entry.kills, 16)
+				net.WriteUInt(entry.deaths, 16)
+				net.WriteUInt(entry.current_streak, 16)
+				net.WriteUInt(entry.best_streak, 16)
+				net.WriteUInt(entry.headshots, 16)
+				net.WriteString(entry.steamid64)
+			end
 		end
 	if target then
 		net.Send(target)
@@ -272,8 +488,10 @@ function PVPLeaderboard.SendPlayerStats(target, stats)
 	net.Send(target)
 end
 
---- Refresh cache and broadcast the updated leaderboard to all connected clients.
--- Called after every kill event and on the periodic timer.
+--- Refresh the display caches and broadcast to all clients. This is the cheap
+-- per-kill path: it reads the in-memory windowed aggregates (already updated by
+-- RecordEvent) and the small all-time table — no event-log replay. The periodic
+-- timer pairs this with RecomputeWindowAgg() to age out stale window data.
 function PVPLeaderboard.RefreshAndBroadcast()
 	PVPLeaderboard.RefreshCache()
 	PVPLeaderboard.SendCache()
@@ -346,11 +564,15 @@ end)
 -- INITIALIZATION & PERIODIC REFRESH
 -- =============================================================================
 
--- Populate the cache immediately on server start.
--- This ensures Perm Props entities have data as soon as they spawn on map load.
+-- Populate the caches immediately on server start.
+-- Seeds the windowed aggregates from the persisted event log (restart recovery)
+-- then builds every period board, so Perm Props entities have data the moment
+-- they spawn on map load.
 hook.Add("InitPostEntity", "PVPLeaderboard_InitCache", function()
+	PVPLeaderboard.RecomputeWindowAgg()
 	PVPLeaderboard.RefreshCache()
-	ServerLog("[PVP Leaderboard] Cache populated with " .. #PVPLeaderboard.CachedBoard .. " entries.\n")
+	local alltime = PVPLeaderboard.CachedBoards.alltime or {}
+	ServerLog("[PVP Leaderboard] Caches populated (" .. #alltime .. " all-time entries).\n")
 end)
 
 -- Send the current cache to each player when they finish loading.
@@ -374,6 +596,9 @@ local function StartCacheTimer()
 	end
 
 	timer.Create("PVPLeaderboard_CacheRefresh", interval, 0, function()
+		-- Authoritative replay first (drops kills that have aged out of each
+		-- rolling window), then rebuild + broadcast all boards.
+		PVPLeaderboard.RecomputeWindowAgg()
 		PVPLeaderboard.RefreshAndBroadcast()
 	end)
 end

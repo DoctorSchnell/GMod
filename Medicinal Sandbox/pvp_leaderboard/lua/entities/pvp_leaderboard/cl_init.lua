@@ -144,17 +144,20 @@ function ENT:Draw()
 
 	if not PVPLeaderboard or not PVPLeaderboard.DrawBoard then return end
 
+	-- Period this sign shows (inherited classes override ENT.Period).
+	local period = self.Period or "alltime"
+
 	-- Front face 3D2D
 	local frontPos = self:LocalToWorld(FRONT_OFFSET)
 	local frontAng = self:LocalToWorldAngles(FRONT_ANGLE)
 	cam.Start3D2D(frontPos, frontAng, SCALE)
-		PVPLeaderboard.DrawBoard(SCREEN_W)
+		PVPLeaderboard.DrawBoard(SCREEN_W, period)
 	cam.End3D2D()
 
 	-- Back face 3D2D
 	local backPos = self:LocalToWorld(BACK_OFFSET)
 	local backAng = self:LocalToWorldAngles(BACK_ANGLE)
 	cam.Start3D2D(backPos, backAng, SCALE)
-		PVPLeaderboard.DrawBoard(SCREEN_W)
+		PVPLeaderboard.DrawBoard(SCREEN_W, period)
 	cam.End3D2D()
 end

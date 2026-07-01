@@ -1,12 +1,13 @@
-# PVP Leaderboard v2.2.2
+# PVP Leaderboard v2.3.0
 
-Persistent PVP leaderboard for Garry's Mod sandbox servers. Tracks kills, deaths, K/D ratio, kill streaks, and headshots across server reboots. Displays stats on a spawnable metal-framed floating sign entity with 3D2D rendering on both faces.
+Persistent PVP leaderboard for Garry's Mod sandbox servers. Tracks kills, deaths, K/D ratio, kill streaks, and headshots across server reboots, over **four time windows**: all-time, the last 24 hours, the last 7 days, and the last 30 days. Each window has its own spawnable metal-framed floating sign entity with 3D2D rendering on both faces, and the `!pvpboard` panel switches between them.
 
 ## Features
 
-- **Persistent Stats** — SQLite storage survives server reboots and map changes.
-- **Spawnable Entity** — Metal-framed floating sign with 3D2D content on both faces. Always shows 10 rows. Perm Props compatible.
-- **On-Screen Panel** — `!pvpboard` opens a draggable leaderboard overlay.
+- **Four Time Windows** — All-time, rolling 24-hour, rolling 7-day, and rolling 30-day boards. All-time keeps cumulative history; the windowed boards reflect recent activity.
+- **Persistent Stats** — SQLite storage survives server reboots and map changes. A timestamped kill event log powers the rolling windows and is retained indefinitely.
+- **Spawnable Entities** — One metal-framed floating sign per time window, each with 3D2D content on both faces. Always shows 10 rows. Perm Props compatible.
+- **On-Screen Panel** — `!pvpboard` opens a draggable leaderboard overlay with tabs to switch between the four windows.
 - **Auto-Cycling Sort** — Leaderboard rotates through Kills, K/D, Best Streak, and Headshots with a split-flap transition animation.
 - **XGUI Settings Panel** — Configure tracking, display entries, sort cycle speed, and cache intervals.
 - **Kill Validation** — Only counts kills where the attacker is tagged by the PVP Combat Timer addon.
@@ -39,22 +40,33 @@ All settings are managed via the XGUI panel (Settings > PVP Leaderboard) or cons
 
 | Command | Access | Description |
 |---------|--------|-------------|
-| `!pvpstats` | All | View your own PVP stats in chat |
+| `!pvpstats` | All | View your own (all-time) PVP stats in chat |
 | `!pvpstats <player>` | Admin | View another player's PVP stats |
-| `!pvpboard` | All | Open the leaderboard as a draggable on-screen panel |
+| `!pvpboard` | All | Open the leaderboard panel (with tabs for each window) |
+| `!pvpboard <period>` | All | Open the panel on a specific tab (`alltime`, `24h`, `7d`, `30d`) |
 | `!pvpsort <mode>` | Admin | Set the sort mode for all players (kills, kd, streak, headshots) |
-| `!pvpreset <player>` | SuperAdmin | Reset a player's stats to zero |
-| `!pvpresetall` | SuperAdmin | Wipe the entire leaderboard (cannot be undone) |
+| `!pvpreset <player>` | SuperAdmin | Reset a player's stats to zero (also removes their kills from the windowed boards) |
+| `!pvpresetall` | SuperAdmin | Wipe the entire leaderboard incl. the event log (cannot be undone) |
 
-## Entity
+## Entities
 
-Spawn from the Entities tab in the spawn menu under the **PVP Leaderboard** category.
+Spawn from the Entities tab in the spawn menu under the **PVP Leaderboard** category. There is one entity per time window — pick the board you want and spawn it directly. The time window is baked into the entity class, so a Perm Prop restores the correct board after a map change.
 
-| Entity | Backing Model | Display Size |
-|--------|---------------|--------------|
-| PVP Leaderboard | `plate3x5.mdl` | ~235 x 144 game units |
+| Entity (class) | Board shown | Backing Model | Display Size |
+|----------------|-------------|---------------|--------------|
+| PVP Leaderboard (All Time) (`pvp_leaderboard`) | All-time | `plate3x5.mdl` | ~235 x 144 game units |
+| PVP Leaderboard (24 Hour) (`pvp_leaderboard_24h`) | Rolling 24h | `plate3x5.mdl` | ~235 x 144 game units |
+| PVP Leaderboard (7 Day) (`pvp_leaderboard_7d`) | Rolling 7d | `plate3x5.mdl` | ~235 x 144 game units |
+| PVP Leaderboard (30 Day) (`pvp_leaderboard_30d`) | Rolling 30d | `plate3x5.mdl` | ~235 x 144 game units |
 
-The entity renders as a metal-framed floating sign (dark gunmetal frame, charcoal panel), displays on both faces, has solid collision via a hidden PHX plate, and re-freezes after physgun placement. The entity is invulnerable to all damage including ACF projectiles.
+Every entity renders as a metal-framed floating sign (dark gunmetal frame, charcoal panel), displays on both faces, has solid collision via a hidden PHX plate, and re-freezes after physgun placement. All are invulnerable to all damage including ACF projectiles. The windowed variants inherit their behaviour from the base `pvp_leaderboard` entity; only the board they display differs.
+
+### Window behaviour
+
+- **Rolling windows** — 24h/7d/30d show kills from the trailing 24 hours / 7 days / 30 days, sliding continuously.
+- **Instant on new kills** — a new kill appears on every board (including the windowed ones) immediately.
+- **Aging out** — kills that fall outside a window drop off it on the next cache refresh (`pvplb_cache_interval`, default 60s), so a windowed board lags at most that interval on its trailing edge.
+- **Best streak** in a windowed board counts the longest run of consecutive kills *within that window*.
 
 ## Stats Tracked
 
@@ -74,6 +86,8 @@ The entity renders as a metal-framed floating sign (dark gunmetal frame, charcoa
 - Self-kills (suicide, fall damage) are ignored
 - Bot kills/deaths are excluded
 - Headshot detection uses `LastHitGroup() == HITGROUP_HEAD` (works for bullet weapons including CW 2.0; may miss some ACF projectile kills)
+- The same rules apply to every time window — each validated kill counts toward all-time and is logged to the event table for the rolling windows
+- The all-time board lists all players (padding with zero-kill players if few exist); the windowed boards list only players with at least one kill inside that window
 
 ## File Structure
 
@@ -83,16 +97,20 @@ garrysmod/addons/pvp_leaderboard/
 ├── README.md
 └── lua/
     ├── autorun/
-    │   ├── sh_pvp_leaderboard.lua                -- Shared ConVars, namespace, config sync
+    │   ├── sh_pvp_leaderboard.lua                -- Shared ConVars, period definitions, namespace, config sync
     │   ├── client/
     │   │   └── cl_pvp_leaderboard.lua            -- Client cache, rendering, net receivers
     │   └── server/
-    │       ├── sv_pvp_leaderboard_db.lua          -- Database, cache, net sync, admin config
+    │       ├── sv_pvp_leaderboard_db.lua          -- Stats + event log, windowed aggregates, caches, net sync
     │       └── sv_pvp_leaderboard_tracking.lua    -- Kill tracking via PlayerDeath hook
-    ├── entities/pvp_leaderboard/
-    │   ├── shared.lua                             -- Entity registration
-    │   ├── init.lua                               -- Server physics, damage protection
-    │   └── cl_init.lua                            -- Client 3D rendering
+    ├── entities/
+    │   ├── pvp_leaderboard/                       -- Base (All Time) entity
+    │   │   ├── shared.lua                         -- Entity registration (ENT.Period = "alltime")
+    │   │   ├── init.lua                           -- Server physics, damage protection
+    │   │   └── cl_init.lua                        -- Client 3D rendering
+    │   ├── pvp_leaderboard_24h/                   -- 24-hour variant (init/cl_init/shared, inherits base)
+    │   ├── pvp_leaderboard_7d/                    -- 7-day variant (init/cl_init/shared, inherits base)
+    │   └── pvp_leaderboard_30d/                   -- 30-day variant (init/cl_init/shared, inherits base)
     └── ulx/
         ├── modules/sh/
         │   └── pvp_leaderboard.lua                -- ULX commands
@@ -102,6 +120,7 @@ garrysmod/addons/pvp_leaderboard/
 
 ## Version History
 
+- **2.3.0** — Added rolling time-windowed boards (24h / 7d / 30d) alongside the existing all-time board. Each window has its own spawnable entity (`pvp_leaderboard_24h` / `_7d` / `_30d`), and the `!pvpboard` panel gained tabs to switch between windows (`!pvpboard <period>` opens a specific tab). Backed by a new timestamped kill event log with in-memory windowed aggregates updated per kill (O(1) hot path) and an indexed periodic replay to age out old kills — performance stays flat regardless of event-log size. Resets now also clear event-log data.
 - **2.2.2** — Fix leaderboard entity being unfrozen by explosive blast force.
 - **2.2.1** — 2x text resolution rendering, row/border alignment fixes, vertical spacing tuning.
 - **2.2.0** — Auto-cycling sort mode (Kills → K/D → Best Streak → Headshots) with split-flap transition animation. Active sort column highlighted in header. Configurable cycle interval via `pvplb_sort_interval`.

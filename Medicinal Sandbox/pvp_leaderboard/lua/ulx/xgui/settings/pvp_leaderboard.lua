@@ -82,7 +82,12 @@ local sCacheInterval = xlib.makeslider{x = 5, y = y, w = 545, label = "Cache Ref
 cv = GetConVar("pvplb_cache_interval")
 if cv then sCacheInterval:SetValue(cv:GetFloat()) end
 sCacheInterval.OnValueChanged = function(self, val) stagedChanges["pvplb_cache_interval"] = math.Round(val) end
-y = y + 34
+y = y + 26
+
+-- Note: new kills appear on every board instantly; this interval only governs
+-- how often the rolling windows (24h/7d/30d) drop kills that have aged out.
+xlib.makelabel{x = 5, y = y, label = "Windowed boards age out old kills on this interval (new kills show instantly).", textcolor = Color(110, 110, 110), parent = canvas}
+y = y + 24
 
 -- =============================================================================
 -- APPLY / RESET

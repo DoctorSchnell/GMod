@@ -62,7 +62,11 @@ hook.Add("PlayerDeath", "PVPLeaderboard_TrackKill", function(victim, inflictor, 
 	-- Record the death for the victim (increments deaths, resets streak)
 	PVPLeaderboard.RecordDeath(victim)
 
-	-- Refresh the cache and broadcast the updated leaderboard to all clients.
+	-- Log the kill to the event table and fold it into the rolling windowed
+	-- aggregates (powers the 24h/7d/30d boards). O(1) — no event-log replay here.
+	PVPLeaderboard.RecordEvent(attacker:SteamID64(), victim:SteamID64(), isHeadshot)
+
+	-- Refresh the caches and broadcast the updated leaderboards to all clients.
 	-- At sandbox server scale (5-25 players), this is a lightweight operation.
 	PVPLeaderboard.RefreshAndBroadcast()
 end)

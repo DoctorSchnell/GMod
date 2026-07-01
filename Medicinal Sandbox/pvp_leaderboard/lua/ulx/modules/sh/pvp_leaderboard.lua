@@ -53,19 +53,35 @@ pvpstats:help("View a player's PVP stats (or your own if no player specified).")
 -- !pvpboard - Open the leaderboard panel on screen
 -- =============================================================================
 
-function ulx.pvpboard(calling_ply)
+function ulx.pvpboard(calling_ply, period)
 	if not IsValid(calling_ply) then
 		ULib.tsayError(calling_ply, "This command must be run by a player.")
 		return
 	end
 
+	-- Resolve the requested period to its index in PVPLeaderboard.Periods so the
+	-- panel opens on that tab. Defaults to all-time (index 1) when omitted or
+	-- unrecognised; the player can switch tabs in the panel regardless.
+	local periodIndex = 1
+	period = string.lower(string.Trim(period or ""))
+	if period ~= "" then
+		for i, p in ipairs(PVPLeaderboard.Periods) do
+			if p.id == period then
+				periodIndex = i
+				break
+			end
+		end
+	end
+
 	net.Start("PVPLeaderboard_OpenBoard")
+		net.WriteUInt(periodIndex, 4)
 	net.Send(calling_ply)
 end
 
 local pvpboard = ulx.command("PVP Leaderboard", "ulx pvpboard", ulx.pvpboard, "!pvpboard")
+pvpboard:addParam{type = ULib.cmds.StringArg, hint = "alltime|24h|7d|30d", ULib.cmds.optional}
 pvpboard:defaultAccess(ULib.ACCESS_ALL)
-pvpboard:help("Open the PVP leaderboard panel on screen.")
+pvpboard:help("Open the PVP leaderboard panel (optionally to a specific period: alltime, 24h, 7d, 30d).")
 
 -- =============================================================================
 -- !pvpsort <mode> - Set leaderboard sort mode for all clients

@@ -13,14 +13,15 @@ PVPLeaderboard = PVPLeaderboard or {}
 -- CLIENT-SIDE CACHE
 -- =============================================================================
 
--- The local copy of the leaderboard, updated by the server.
--- Entities read from this table for 3D2D rendering.
-PVPLeaderboard.ClientCache = PVPLeaderboard.ClientCache or {}
+-- The local copy of every period's leaderboard, keyed by period id, updated by
+-- the server. Entities/panels read from these tables for rendering.
+PVPLeaderboard.ClientCaches = PVPLeaderboard.ClientCaches or {}
 
---- Public accessor for entities to read the current leaderboard data.
+--- Public accessor for the current leaderboard data of one period.
+-- @param periodId string - period id (defaults to "alltime")
 -- @return table - array of leaderboard entries (may be empty)
-function PVPLeaderboard.GetClientCache()
-	return PVPLeaderboard.ClientCache
+function PVPLeaderboard.GetClientCache(periodId)
+	return PVPLeaderboard.ClientCaches[periodId or "alltime"] or {}
 end
 
 -- =============================================================================
@@ -56,6 +57,14 @@ surface.CreateFont("PVPLeaderboard_Empty", {
 	font = "Roboto",
 	size = 28,
 	weight = 400,
+	antialias = true,
+})
+
+-- Font for the period switcher tabs on the !pvpboard panel
+surface.CreateFont("PVPLeaderboard_Tab", {
+	font = "Roboto",
+	size = 26,
+	weight = 600,
 	antialias = true,
 })
 
@@ -151,11 +160,13 @@ local FLAP_RATE         = 18    -- character flips per second during scramble
 local FLAP_CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789"
 local FLAP_CHARSET_LEN = #FLAP_CHARSET
 
--- Transition state shared by all entity renderers
+-- Transition state shared by all renderers. The sort cycle is global (every
+-- board flips column together), but each board renders its own period's rows,
+-- so we no longer precompute a single row set here — only the timing state.
 local transition = {
 	active    = false,
 	startTime = 0,
-	rows      = {},   -- target display rows (pre-computed string values)
+	maxRows   = 0,   -- longest visible board, for completion timing
 }
 
 --- Return a deterministic pseudo-random flap character.
@@ -239,29 +250,36 @@ local function BoardToRows(board)
 	return rows
 end
 
---- Begin a split-flap transition to a new sort mode.
+--- Begin a split-flap transition to a new sort mode (applies to all boards).
 local function BeginSortTransition(newIndex)
 	if transition.active then return end
 
-	local board = PVPLeaderboard.ClientCache or {}
-	if #board == 0 then
-		currentSortIndex = newIndex
+	currentSortIndex = newIndex
+
+	-- Time the animation to the longest board across all periods so every
+	-- visible row gets to settle (entities cap at 10; the panel may show more).
+	local maxRows = 0
+	for _, board in pairs(PVPLeaderboard.ClientCaches) do
+		if #board > maxRows then maxRows = #board end
+	end
+
+	if maxRows == 0 then
+		-- Nothing on any board to animate; just switch instantly.
+		transition.active = false
 		return
 	end
 
-	local newSorted = SortBoard(board, newIndex)
-	transition.rows      = BoardToRows(newSorted)
 	transition.active    = true
 	transition.startTime = CurTime()
-	currentSortIndex     = newIndex
+	transition.maxRows   = maxRows
 end
 
 --- Deactivate the transition once the last row has fully settled.
 local function CheckTransitionComplete()
 	if not transition.active then return end
 
-	local maxRow = #transition.rows
-	if maxRow == 0 then maxRow = 1 end
+	local maxRow = transition.maxRows
+	if maxRow < 1 then maxRow = 1 end
 	local totalDuration = FLAP_BASE_DELAY + (maxRow - 1) * FLAP_ROW_STAGGER + FLAP_RESOLVE_TIME
 
 	if CurTime() - transition.startTime >= totalDuration then
@@ -337,18 +355,34 @@ local function DrawDataRow(w, y, i, row)
 		"PVPLeaderboard_Row", COL_HS, y + ROW_H / 2, textColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 end
 
---- Get the current display rows, applying sort and transition state.
--- @return table - array of display row tables
-local function GetDisplayRows()
-	local board = PVPLeaderboard.ClientCache or {}
-	if #board == 0 then return {} end
+-- Per-frame memo of display rows, keyed by period id. With up to four entity
+-- classes (two faces each) plus the panel potentially on screen at once, this
+-- ensures each period's board is sorted/formatted at most once per frame.
+-- The split-flap scramble is applied later at draw time (from row progress), so
+-- the row strings themselves depend only on the period, cache, and sort column.
+local displayRowCache = {}
+local displayRowFrame = -1
 
-	if transition.active then
-		return transition.rows
+--- Get the current display rows for one period (sorted by the active column).
+-- @param periodId string - period id (defaults to "alltime")
+-- @return table - array of display row tables (may be empty)
+local function GetDisplayRows(periodId)
+	periodId = periodId or "alltime"
+
+	local frame = FrameNumber()
+	if frame ~= displayRowFrame then
+		displayRowCache = {}
+		displayRowFrame = frame
 	end
 
-	local sorted = SortBoard(board, currentSortIndex)
-	return BoardToRows(sorted)
+	local cached = displayRowCache[periodId]
+	if cached then return cached end
+
+	local board = PVPLeaderboard.ClientCaches[periodId] or {}
+	local rows = (#board == 0) and {} or BoardToRows(SortBoard(board, currentSortIndex))
+
+	displayRowCache[periodId] = rows
+	return rows
 end
 
 -- =============================================================================
@@ -358,10 +392,13 @@ end
 --- Draw the full leaderboard at the current 3D2D origin.
 -- Called by the entity Draw function. Fixed at 10 rows to fit the plate model.
 -- @param w number - screen width in 3D2D units
-function PVPLeaderboard.DrawBoard(w)
+-- @param periodId string - which period board to render (defaults to "alltime")
+function PVPLeaderboard.DrawBoard(w, periodId)
+	periodId = periodId or "alltime"
+
 	CheckTransitionComplete()
 
-	local board = PVPLeaderboard.ClientCache or {}
+	local board = PVPLeaderboard.ClientCaches[periodId] or {}
 
 	-- Fixed height for 10 rows (matches plate3x5 dimensions)
 	local h = TITLE_H + HEADER_H + ROW_H * 10 + PAD
@@ -371,10 +408,11 @@ function PVPLeaderboard.DrawBoard(w)
 	surface.SetDrawColor(COLOR_BORDER)
 	surface.DrawOutlinedRect(0, 0, w, h, 2)
 
-	-- Title bar (crimson red, rounded top corners only)
+	-- Title bar (crimson red, rounded top corners only). Period label drives the
+	-- heading, e.g. "ALL TIME PVP RECORD", "24 HOUR PVP RECORD".
 	draw.RoundedBoxEx(8, 0, 0, w, TITLE_H, COLOR_TITLE_BG, true, true, false, false)
 	draw.SimpleText(
-		"ALL TIME PVP RECORD", "PVPLeaderboard_Title",
+		PVPLeaderboard.GetPeriod(periodId).label .. " PVP RECORD", "PVPLeaderboard_Title",
 		w / 2, TITLE_H / 2,
 		COLOR_WHITE, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
 	)
@@ -392,7 +430,7 @@ function PVPLeaderboard.DrawBoard(w)
 		return
 	end
 
-	local displayRows = GetDisplayRows()
+	local displayRows = GetDisplayRows(periodId)
 	for i, row in ipairs(displayRows) do
 		if i > 10 then break end
 		DrawDataRow(w, y, i, row)
@@ -443,34 +481,43 @@ net.Receive("PVPLeaderboard_SetSort", function()
 	StartSortCycleTimer()
 end)
 
---- Receive the full leaderboard cache from the server.
--- Called after every kill event and on the periodic refresh timer.
+--- Receive every period's leaderboard cache from the server.
+-- Called after every kill event and on the periodic refresh timer. Period
+-- blocks arrive in PVPLeaderboard.Periods order (same list on both realms).
 net.Receive("PVPLeaderboard_SyncCache", function()
-	local count = net.ReadUInt(8)
-	local board = {}
+	local periodCount = net.ReadUInt(4)
+	local caches = {}
 
-	for i = 1, count do
-		local name           = net.ReadString()
-		local kills          = net.ReadUInt(16)
-		local deaths         = net.ReadUInt(16)
-		local current_streak = net.ReadUInt(16)
-		local best_streak    = net.ReadUInt(16)
-		local headshots      = net.ReadUInt(16)
-		local steamid64      = net.ReadString()
+	for p = 1, periodCount do
+		local count = net.ReadUInt(8)
+		local board = {}
 
-		board[i] = {
-			name           = name,
-			kills          = kills,
-			deaths         = deaths,
-			kd             = deaths > 0 and math.Round(kills / deaths, 2) or kills,
-			current_streak = current_streak,
-			best_streak    = best_streak,
-			headshots      = headshots,
-			steamid64      = steamid64,
-		}
+		for i = 1, count do
+			local name           = net.ReadString()
+			local kills          = net.ReadUInt(16)
+			local deaths         = net.ReadUInt(16)
+			local current_streak = net.ReadUInt(16)
+			local best_streak    = net.ReadUInt(16)
+			local headshots      = net.ReadUInt(16)
+			local steamid64      = net.ReadString()
+
+			board[i] = {
+				name           = name,
+				kills          = kills,
+				deaths         = deaths,
+				kd             = deaths > 0 and math.Round(kills / deaths, 2) or kills,
+				current_streak = current_streak,
+				best_streak    = best_streak,
+				headshots      = headshots,
+				steamid64      = steamid64,
+			}
+		end
+
+		local period = PVPLeaderboard.Periods[p]
+		if period then caches[period.id] = board end
 	end
 
-	PVPLeaderboard.ClientCache = board
+	PVPLeaderboard.ClientCaches = caches
 end)
 
 --- Receive individual player stats (response to !pvpstats).
@@ -502,18 +549,28 @@ net.Receive("PVPLeaderboard_PlayerStats", function()
 end)
 
 --- Open the leaderboard as a VGUI panel (response to !pvpboard).
--- Uses a fixed title/header area with a scrollable row section so all
--- entries from the cache are visible (not capped at 10 like the entity).
+-- Fixed title bar + a period tab strip + column headers, with a scrollable row
+-- section so all entries are visible (not capped at 10 like the entity). The
+-- tabs switch which period (All Time / 24h / 7d / 30d) is displayed.
 net.Receive("PVPLeaderboard_OpenBoard", function()
+	-- Initial period to show, chosen by the !pvpboard command argument.
+	local initialIdx = net.ReadUInt(4)
+	local initialPeriod = PVPLeaderboard.Periods[initialIdx]
+		and PVPLeaderboard.Periods[initialIdx].id or "alltime"
+
 	-- Close existing panel if already open
 	if IsValid(PVPLeaderboard.Panel) then
 		PVPLeaderboard.Panel:Remove()
 	end
 
-	local panelW = 940
-	local fixedH = TITLE_H + HEADER_H
+	-- Which period this panel is currently showing (mutated by the tab buttons).
+	local selectedPeriod = initialPeriod
+
+	local panelW  = 940
+	local TAB_H   = 44
+	local fixedH  = TITLE_H + TAB_H + HEADER_H
 	local scrollH = ROW_H * 10 + PAD
-	local panelH = fixedH + scrollH
+	local panelH  = fixedH + scrollH
 
 	local frame = vgui.Create("DFrame")
 	frame:SetTitle("")
@@ -524,7 +581,8 @@ net.Receive("PVPLeaderboard_OpenBoard", function()
 	frame.btnMaxim:SetVisible(false)
 	frame.btnMinim:SetVisible(false)
 
-	-- Paint fixed header: background, title bar, and column headers
+	-- Paint fixed chrome: background, title bar (selected period), tab strip
+	-- background, and column headers.
 	frame.Paint = function(self, w, h)
 		draw.RoundedBox(8, 0, 0, w, h, COLOR_BG)
 		surface.SetDrawColor(COLOR_BORDER)
@@ -532,15 +590,46 @@ net.Receive("PVPLeaderboard_OpenBoard", function()
 
 		draw.RoundedBoxEx(8, 0, 0, w, TITLE_H, COLOR_TITLE_BG, true, true, false, false)
 		draw.SimpleText(
-			"ALL TIME PVP RECORD", "PVPLeaderboard_Title",
+			PVPLeaderboard.GetPeriod(selectedPeriod).label .. " PVP RECORD", "PVPLeaderboard_Title",
 			w / 2, TITLE_H / 2,
 			COLOR_WHITE, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
 		)
 
-		DrawHeaders(w, TITLE_H)
+		draw.RoundedBox(0, 2, TITLE_H, w - 4, TAB_H, COLOR_HEADER_BG)
+
+		DrawHeaders(w, TITLE_H + TAB_H)
 	end
 
-	-- Scrollable area for data rows (positioned below the fixed header)
+	-- Period switcher tabs, evenly spread across the tab strip.
+	local tabCount = #PVPLeaderboard.Periods
+	local margin   = 8
+	local gap      = 6
+	local tabW     = (panelW - margin * 2 - gap * (tabCount - 1)) / tabCount
+	local tabBtnH  = TAB_H - 14
+	local tabY     = TITLE_H + 7
+
+	for i, period in ipairs(PVPLeaderboard.Periods) do
+		local btn = vgui.Create("DButton", frame)
+		btn:SetText("")
+		btn:SetSize(tabW, tabBtnH)
+		btn:SetPos(margin + (i - 1) * (tabW + gap), tabY)
+		btn.Paint = function(self, w, h)
+			local active = (selectedPeriod == period.id)
+			draw.RoundedBox(4, 0, 0, w, h, active and COLOR_TITLE_BG or COLOR_ROW_ODD)
+			if active then
+				surface.SetDrawColor(COLOR_GOLD)
+				surface.DrawOutlinedRect(0, 0, w, h, 1)
+			end
+			draw.SimpleText(period.label, "PVPLeaderboard_Tab", w / 2, h / 2,
+				active and COLOR_WHITE or COLOR_GRAY, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		end
+		btn.DoClick = function()
+			selectedPeriod = period.id
+			surface.PlaySound("buttons/button14.wav")
+		end
+	end
+
+	-- Scrollable area for data rows (positioned below the fixed chrome)
 	local scroll = vgui.Create("DScrollPanel", frame)
 	scroll:SetPos(0, fixedH)
 	scroll:SetSize(panelW, scrollH)
@@ -552,7 +641,7 @@ net.Receive("PVPLeaderboard_OpenBoard", function()
 	rowCanvas.Paint = function(self, w, h)
 		CheckTransitionComplete()
 
-		local displayRows = GetDisplayRows()
+		local displayRows = GetDisplayRows(selectedPeriod)
 		if #displayRows == 0 then
 			draw.SimpleText(
 				"No PVP data recorded yet.", "PVPLeaderboard_Empty",
@@ -574,6 +663,10 @@ net.Receive("PVPLeaderboard_OpenBoard", function()
 			y = y + ROW_H
 		end
 	end
+
+	-- Request a fresh sync so windowed boards are current the moment it opens.
+	net.Start("PVPLeaderboard_RequestSync")
+	net.SendToServer()
 
 	PVPLeaderboard.Panel = frame
 end)

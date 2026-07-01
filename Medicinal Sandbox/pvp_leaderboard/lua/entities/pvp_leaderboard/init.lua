@@ -68,7 +68,8 @@ hook.Add("Initialize", "PVPLeaderboard_ACFProtection", function()
 		local OriginalACF_Damage = ACF_Damage
 
 		function ACF_Damage(Entity, Energy, FrAera, Angle, Inflictor, Bone, ...)
-			if IsValid(Entity) and Entity:GetClass() == "pvp_leaderboard" then
+			-- Covers all leaderboard sign classes (all-time + 24h/7d/30d).
+			if IsValid(Entity) and PVPLeaderboard.ClassToPeriod[Entity:GetClass()] then
 				return { Damage = 0, Overkill = 0, Loss = 0, Kill = false }
 			end
 

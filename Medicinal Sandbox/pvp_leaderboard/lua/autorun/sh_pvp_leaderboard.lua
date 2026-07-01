@@ -51,3 +51,43 @@ local syncCvars = {"pvplb_enabled", "pvplb_max_entries", "pvplb_cache_interval",
 for _, name in ipairs(syncCvars) do
 	cvars.AddChangeCallback(name, function() SyncConfig() end, "pvplb_sync")
 end
+
+-- =============================================================================
+-- LEADERBOARD PERIODS (time windows)
+-- =============================================================================
+--
+-- Single source of truth for the four leaderboard variants. Shared so the
+-- server (cache building), client (rendering + panel tabs), and entities
+-- (which period a sign displays) all agree on ids, labels, and classes.
+--
+--   id      - stable identifier used as the cache key and in net messages
+--   label   - shown on signs/panels as "<label> PVP RECORD" and on panel tabs
+--   seconds - rolling window length; 0 means all-time (no time filter)
+--   class   - the spawnable entity class that displays this period
+--
+-- All-time reads the cumulative aggregate table (preserving history from
+-- before the event log existed); the windowed boards are computed from the
+-- kill event log. This declaration order is also the tab/sync order.
+PVPLeaderboard.Periods = {
+	{id = "alltime", label = "ALL TIME", seconds = 0,       class = "pvp_leaderboard"},
+	{id = "24h",     label = "24 HOUR",  seconds = 86400,   class = "pvp_leaderboard_24h"},
+	{id = "7d",      label = "7 DAY",    seconds = 604800,  class = "pvp_leaderboard_7d"},
+	{id = "30d",     label = "30 DAY",   seconds = 2592000, class = "pvp_leaderboard_30d"},
+}
+
+-- Look up a period table by id. Falls back to the first period (all-time)
+-- for unknown ids so callers always receive a valid period.
+function PVPLeaderboard.GetPeriod(id)
+	for _, p in ipairs(PVPLeaderboard.Periods) do
+		if p.id == id then return p end
+	end
+	return PVPLeaderboard.Periods[1]
+end
+
+-- Map of entity class -> period id, so the entity / physics / damage code can
+-- recognise "is this one of our leaderboard signs?" across all four classes
+-- without duplicating the class list in multiple files.
+PVPLeaderboard.ClassToPeriod = {}
+for _, p in ipairs(PVPLeaderboard.Periods) do
+	PVPLeaderboard.ClassToPeriod[p.class] = p.id
+end
