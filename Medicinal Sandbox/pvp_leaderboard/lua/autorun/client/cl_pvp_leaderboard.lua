@@ -17,13 +17,6 @@ PVPLeaderboard = PVPLeaderboard or {}
 -- the server. Entities/panels read from these tables for rendering.
 PVPLeaderboard.ClientCaches = PVPLeaderboard.ClientCaches or {}
 
---- Public accessor for the current leaderboard data of one period.
--- @param periodId string - period id (defaults to "alltime")
--- @return table - array of leaderboard entries (may be empty)
-function PVPLeaderboard.GetClientCache(periodId)
-	return PVPLeaderboard.ClientCaches[periodId or "alltime"] or {}
-end
-
 -- =============================================================================
 -- FONTS
 -- =============================================================================
@@ -146,6 +139,10 @@ local SORT_MODES = {
 -- Active sort mode index (1 = kills, 2 = K/D, 3 = best streak, 4 = headshots)
 local currentSortIndex = 1
 
+-- Forward declaration: defined with the display-row cache further down, but the
+-- sort-transition logic (above that point) needs to invalidate the cache.
+local InvalidateDisplayRows
+
 -- =============================================================================
 -- SPLIT-FLAP TRANSITION ANIMATION
 -- =============================================================================
@@ -255,6 +252,8 @@ local function BeginSortTransition(newIndex)
 	if transition.active then return end
 
 	currentSortIndex = newIndex
+	-- Sort column changed: cached rows are stale, rebuild on next draw.
+	InvalidateDisplayRows()
 
 	-- Time the animation to the longest board across all periods so every
 	-- visible row gets to settle (entities cap at 10; the panel may show more).
@@ -317,6 +316,20 @@ local function DrawHeaders(w, y)
 	end
 end
 
+-- Data-row column layout. `color` selects a palette slot resolved per row below
+-- ("name" tracks the rank medal color, "kd" is greyed, "text" is white). The
+-- array index doubles as the split-flap column seed (kept identical to the
+-- original 1..7 ordering so the scramble looks the same).
+local DATA_COLUMNS = {
+	{key = "rank",   x = COL_RANK,  align = TEXT_ALIGN_LEFT,   color = "name"},
+	{key = "name",   x = COL_NAME,  align = TEXT_ALIGN_LEFT,   color = "name"},
+	{key = "kills",  x = COL_KILLS, align = TEXT_ALIGN_CENTER, color = "text"},
+	{key = "deaths", x = COL_DEATH, align = TEXT_ALIGN_CENTER, color = "text"},
+	{key = "kd",     x = COL_KD,    align = TEXT_ALIGN_CENTER, color = "kd"},
+	{key = "best",   x = COL_BEST,  align = TEXT_ALIGN_CENTER, color = "text"},
+	{key = "hs",     x = COL_HS,    align = TEXT_ALIGN_CENTER, color = "text"},
+}
+
 --- Draw a single data row with split-flap animation support.
 -- @param w number - panel width
 -- @param y number - y offset to draw at
@@ -335,45 +348,39 @@ local function DrawDataRow(w, y, i, row)
 	local progress = GetRowResolveProgress(i)
 	local scrambling = transition.active and progress < 1
 
-	local textColor = scrambling and COLOR_FLAP or COLOR_WHITE
-	local nameColor = scrambling and COLOR_FLAP or rankColor
-	local kdColor   = scrambling and COLOR_FLAP or COLOR_GRAY
-
-	draw.SimpleText(scrambling and FlapText(row.rank, progress, i, 1) or row.rank,
-		"PVPLeaderboard_Row", COL_RANK, y + ROW_H / 2, nameColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-	draw.SimpleText(scrambling and FlapText(row.name, progress, i, 2) or row.name,
-		"PVPLeaderboard_Row", COL_NAME, y + ROW_H / 2, nameColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-	draw.SimpleText(scrambling and FlapText(row.kills, progress, i, 3) or row.kills,
-		"PVPLeaderboard_Row", COL_KILLS, y + ROW_H / 2, textColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-	draw.SimpleText(scrambling and FlapText(row.deaths, progress, i, 4) or row.deaths,
-		"PVPLeaderboard_Row", COL_DEATH, y + ROW_H / 2, textColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-	draw.SimpleText(scrambling and FlapText(row.kd, progress, i, 5) or row.kd,
-		"PVPLeaderboard_Row", COL_KD, y + ROW_H / 2, kdColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-	draw.SimpleText(scrambling and FlapText(row.best, progress, i, 6) or row.best,
-		"PVPLeaderboard_Row", COL_BEST, y + ROW_H / 2, textColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-	draw.SimpleText(scrambling and FlapText(row.hs, progress, i, 7) or row.hs,
-		"PVPLeaderboard_Row", COL_HS, y + ROW_H / 2, textColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	local cy = y + ROW_H / 2
+	for col, spec in ipairs(DATA_COLUMNS) do
+		local text = row[spec.key]
+		local color
+		if scrambling then
+			text  = FlapText(text, progress, i, col)
+			color = COLOR_FLAP
+		elseif spec.color == "name" then color = rankColor
+		elseif spec.color == "kd"   then color = COLOR_GRAY
+		else color = COLOR_WHITE
+		end
+		draw.SimpleText(text, "PVPLeaderboard_Row", spec.x, cy, color, spec.align, TEXT_ALIGN_CENTER)
+	end
 end
 
--- Per-frame memo of display rows, keyed by period id. With up to four entity
--- classes (two faces each) plus the panel potentially on screen at once, this
--- ensures each period's board is sorted/formatted at most once per frame.
--- The split-flap scramble is applied later at draw time (from row progress), so
--- the row strings themselves depend only on the period, cache, and sort column.
+-- Memo of display rows, keyed by period id. The sorted/formatted rows depend
+-- only on the cache and the active sort column (the split-flap scramble is
+-- applied later at draw time from row progress), and both change only at
+-- discrete moments — a new sync or a sort change — so the cache is invalidated
+-- on those events rather than rebuilt every frame.
 local displayRowCache = {}
-local displayRowFrame = -1
+
+--- Drop all cached display rows. Called when the cache or sort column changes.
+-- (Assigns the forward-declared upvalue from the sort-mode section above.)
+function InvalidateDisplayRows()
+	displayRowCache = {}
+end
 
 --- Get the current display rows for one period (sorted by the active column).
 -- @param periodId string - period id (defaults to "alltime")
 -- @return table - array of display row tables (may be empty)
 local function GetDisplayRows(periodId)
 	periodId = periodId or "alltime"
-
-	local frame = FrameNumber()
-	if frame ~= displayRowFrame then
-		displayRowCache = {}
-		displayRowFrame = frame
-	end
 
 	local cached = displayRowCache[periodId]
 	if cached then return cached end
@@ -383,6 +390,22 @@ local function GetDisplayRows(periodId)
 
 	displayRowCache[periodId] = rows
 	return rows
+end
+
+--- Draw the "no data" placeholder centered at the given y.
+local function DrawEmptyState(w, y)
+	draw.SimpleText(
+		"No PVP data recorded yet.", "PVPLeaderboard_Empty",
+		w / 2, y,
+		COLOR_EMPTY, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
+	)
+end
+
+-- Precomputed "<label> PVP RECORD" title per period id (labels are static), so
+-- the render path is a table lookup instead of a linear scan + concat per frame.
+local PERIOD_TITLES = {}
+for _, period in ipairs(PVPLeaderboard.Periods) do
+	PERIOD_TITLES[period.id] = period.label .. " PVP RECORD"
 end
 
 -- =============================================================================
@@ -412,7 +435,7 @@ function PVPLeaderboard.DrawBoard(w, periodId)
 	-- heading, e.g. "ALL TIME PVP RECORD", "24 HOUR PVP RECORD".
 	draw.RoundedBoxEx(8, 0, 0, w, TITLE_H, COLOR_TITLE_BG, true, true, false, false)
 	draw.SimpleText(
-		PVPLeaderboard.GetPeriod(periodId).label .. " PVP RECORD", "PVPLeaderboard_Title",
+		PERIOD_TITLES[periodId] or "PVP RECORD", "PVPLeaderboard_Title",
 		w / 2, TITLE_H / 2,
 		COLOR_WHITE, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
 	)
@@ -422,11 +445,7 @@ function PVPLeaderboard.DrawBoard(w, periodId)
 	local y = TITLE_H + HEADER_H
 
 	if #board == 0 then
-		draw.SimpleText(
-			"No PVP data recorded yet.", "PVPLeaderboard_Empty",
-			w / 2, y + 60,
-			COLOR_EMPTY, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
-		)
+		DrawEmptyState(w, y + 60)
 		return
 	end
 
@@ -442,13 +461,11 @@ end
 -- SORT CYCLE TIMER
 -- =============================================================================
 
---- Create (or restart) the client-side sort cycling timer.
+--- Create (or restart) the client-side sort cycling timer. Reads the interval
+-- straight from the ConVar so it does not depend on the shared config callback
+-- having run first; timer.Create with the same name replaces any existing timer.
 local function StartSortCycleTimer()
-	local interval = PVPLeaderboard.Config.SortInterval or 20
-
-	if timer.Exists("PVPLeaderboard_SortCycle") then
-		timer.Remove("PVPLeaderboard_SortCycle")
-	end
+	local interval = GetConVar("pvplb_sort_interval"):GetInt()
 
 	timer.Create("PVPLeaderboard_SortCycle", interval, 0, function()
 		local nextIndex = (currentSortIndex % #SORT_MODES) + 1
@@ -459,9 +476,7 @@ end
 StartSortCycleTimer()
 
 -- Restart the cycle timer when the sort interval ConVar changes
-cvars.AddChangeCallback("pvplb_sort_interval", function()
-	timer.Simple(0, StartSortCycleTimer)
-end, "pvplb_sort_cycle")
+cvars.AddChangeCallback("pvplb_sort_interval", StartSortCycleTimer, "pvplb_sort_cycle")
 
 -- =============================================================================
 -- NET RECEIVERS
@@ -493,23 +508,23 @@ net.Receive("PVPLeaderboard_SyncCache", function()
 		local board = {}
 
 		for i = 1, count do
-			local name           = net.ReadString()
-			local kills          = net.ReadUInt(16)
-			local deaths         = net.ReadUInt(16)
-			local current_streak = net.ReadUInt(16)
-			local best_streak    = net.ReadUInt(16)
-			local headshots      = net.ReadUInt(16)
-			local steamid64      = net.ReadString()
+			-- All six fields are read to stay aligned with the wire format, but
+			-- only the ones the board actually renders are stored (K/D is derived
+			-- in BoardToRows; current_streak/steamid64 are unused client-side).
+			local name        = net.ReadString()
+			local kills       = net.ReadUInt(16)
+			local deaths      = net.ReadUInt(16)
+			net.ReadUInt(16) -- current_streak (unused)
+			local best_streak = net.ReadUInt(16)
+			local headshots   = net.ReadUInt(16)
+			net.ReadString() -- steamid64 (unused)
 
 			board[i] = {
-				name           = name,
-				kills          = kills,
-				deaths         = deaths,
-				kd             = deaths > 0 and math.Round(kills / deaths, 2) or kills,
-				current_streak = current_streak,
-				best_streak    = best_streak,
-				headshots      = headshots,
-				steamid64      = steamid64,
+				name        = name,
+				kills       = kills,
+				deaths      = deaths,
+				best_streak = best_streak,
+				headshots   = headshots,
 			}
 		end
 
@@ -518,6 +533,8 @@ net.Receive("PVPLeaderboard_SyncCache", function()
 	end
 
 	PVPLeaderboard.ClientCaches = caches
+	-- New data arrived: drop cached display rows so they rebuild on next draw.
+	InvalidateDisplayRows()
 end)
 
 --- Receive individual player stats (response to !pvpstats).
@@ -590,7 +607,7 @@ net.Receive("PVPLeaderboard_OpenBoard", function()
 
 		draw.RoundedBoxEx(8, 0, 0, w, TITLE_H, COLOR_TITLE_BG, true, true, false, false)
 		draw.SimpleText(
-			PVPLeaderboard.GetPeriod(selectedPeriod).label .. " PVP RECORD", "PVPLeaderboard_Title",
+			PERIOD_TITLES[selectedPeriod] or "PVP RECORD", "PVPLeaderboard_Title",
 			w / 2, TITLE_H / 2,
 			COLOR_WHITE, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
 		)
@@ -643,11 +660,7 @@ net.Receive("PVPLeaderboard_OpenBoard", function()
 
 		local displayRows = GetDisplayRows(selectedPeriod)
 		if #displayRows == 0 then
-			draw.SimpleText(
-				"No PVP data recorded yet.", "PVPLeaderboard_Empty",
-				w / 2, 60,
-				COLOR_EMPTY, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
-			)
+			DrawEmptyState(w, 60)
 			return
 		end
 

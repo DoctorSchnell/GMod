@@ -1,4 +1,4 @@
-# PVP Leaderboard v2.3.1
+# PVP Leaderboard v2.3.3
 
 Persistent PVP leaderboard for Garry's Mod sandbox servers. Tracks kills, deaths, K/D ratio, kill streaks, and headshots across server reboots, over **four time windows**: all-time, the last 24 hours, the last 7 days, and the last 30 days. Each window has its own spawnable metal-framed floating sign entity with 3D2D rendering on both faces, and the `!pvpboard` panel switches between them.
 
@@ -120,6 +120,8 @@ garrysmod/addons/pvp_leaderboard/
 
 ## Version History
 
+- **2.3.3** — Restored the `init.lua`/`cl_init.lua` files on the 24h/7d/30d entity variants. The 2.3.2 change to a single `shared.lua` per variant is theoretically supported by GMod but, on this server, left the windowed variants absent from the Q menu (only the all-time board registered). The thin init/cl_init/shared trio is required here, not just convention.
+- **2.3.2** — Internal optimization and cleanup pass (no config/command changes). Fixed ACF protection: the signs used an ACF2-era `ACF_Damage` global wrapper that no longer exists on ACF-3, so they were unprotected against ACF weapons — now vetoed via the native `ACF_PreDamageEntity` hook. Per-kill database writes cut from 6–8 queries to 3 (in-SQL arithmetic, `INSERT OR IGNORE`). Rolling-window recompute now does a single indexed pass over the widest window instead of one scan per window (and orders by the indexed `ts` column). Per-kill leaderboard broadcasts are coalesced (kill bursts collapse into one sync). Client signs now draw a cached static mesh through a model matrix instead of rebuilding the mesh and allocating dozens of vectors every frame; display rows are re-sorted on data/sort changes rather than every frame. Removed the redundant `init.lua`/`cl_init.lua` files from the 24h/7d/30d entity variants (each is now a single `shared.lua`).
 - **2.3.1** — Fixed the leaderboard signs rendering behind translucent objects (chat bubbles, sprites, particles). The signs were `RENDERGROUP_TRANSLUCENT`, which skips depth-buffer writes and let those objects overdraw the board. They now render as `RENDERGROUP_OPAQUE` (the panel is effectively solid), so they write depth and translucent objects correctly sort behind them.
 - **2.3.0** — Added rolling time-windowed boards (24h / 7d / 30d) alongside the existing all-time board. Each window has its own spawnable entity (`pvp_leaderboard_24h` / `_7d` / `_30d`), and the `!pvpboard` panel gained tabs to switch between windows (`!pvpboard <period>` opens a specific tab). Backed by a new timestamped kill event log with in-memory windowed aggregates updated per kill (O(1) hot path) and an indexed periodic replay to age out old kills — performance stays flat regardless of event-log size. Resets now also clear event-log data.
 - **2.2.2** — Fix leaderboard entity being unfrozen by explosive blast force.

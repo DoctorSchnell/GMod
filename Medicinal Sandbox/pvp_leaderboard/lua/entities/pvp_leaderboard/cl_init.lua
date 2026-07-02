@@ -35,7 +35,7 @@ local BORDER_SIZE = 1.5
 local SIGN_DEPTH = 3
 local HALF_D = SIGN_DEPTH / 2
 
--- Skip 3D2D rendering beyond this distance squared (~1500 units).
+-- Skip sign rendering beyond this distance squared (~7245 units).
 local RENDER_DIST_SQ = 52500000
 
 -- 3D2D text offsets and angles (entity local space)
@@ -57,47 +57,6 @@ local matBox = CreateMaterial("PVPLeaderboard_SignMat_" .. SysTime(), "UnlitGene
 })
 
 -- =============================================================================
--- 3D BOX HELPERS
--- =============================================================================
-
-local function MeshQuad(p1, p2, p3, p4, normal, col)
-	mesh.Position(p1) mesh.Normal(normal) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 0, 0) mesh.AdvanceVertex()
-	mesh.Position(p2) mesh.Normal(normal) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 1, 0) mesh.AdvanceVertex()
-	mesh.Position(p3) mesh.Normal(normal) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 1, 1) mesh.AdvanceVertex()
-	mesh.Position(p4) mesh.Normal(normal) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 0, 1) mesh.AdvanceVertex()
-end
-
-local function DrawMeshBox(ftl, ftr, fbr, fbl, btl, btr, bbr, bbl, faceCol, sideCol, topCol, nF, nR, nU)
-	render.SetMaterial(matBox)
-
-	for _, cullMode in ipairs({MATERIAL_CULLMODE_CW, MATERIAL_CULLMODE_CCW}) do
-		render.CullMode(cullMode)
-		mesh.Begin(MATERIAL_QUADS, 6)
-			MeshQuad(fbl, fbr, ftr, ftl, nF, faceCol)
-			MeshQuad(bbr, bbl, btl, btr, -nF, faceCol)
-			MeshQuad(fbr, bbr, btr, ftr, nR, sideCol)
-			MeshQuad(bbl, fbl, ftl, btl, -nR, sideCol)
-			MeshQuad(ftl, ftr, btr, btl, nU, topCol)
-			MeshQuad(bbl, bbr, fbr, fbl, -nU, sideCol)
-		mesh.End()
-	end
-
-	render.CullMode(MATERIAL_CULLMODE_CCW)
-end
-
-local function BoxCorners(pos, ri, up, fw)
-	local ftl = pos + fw - ri + up
-	local ftr = pos + fw + ri + up
-	local fbr = pos + fw + ri - up
-	local fbl = pos + fw - ri - up
-	local btl = pos - fw - ri + up
-	local btr = pos - fw + ri + up
-	local bbr = pos - fw + ri - up
-	local bbl = pos - fw - ri - up
-	return ftl, ftr, fbr, fbl, btl, btr, bbr, bbl
-end
-
--- =============================================================================
 -- SIGN COLORS
 -- =============================================================================
 
@@ -108,6 +67,80 @@ local FRAME_TOP  = Color(70, 70, 75)
 local PANEL_FACE = Color(20, 20, 25)
 local PANEL_SIDE = Color(10, 10, 15)
 local PANEL_TOP  = Color(28, 28, 33)
+
+-- =============================================================================
+-- CACHED SIGN MESH
+-- =============================================================================
+--
+-- The frame + panel geometry is identical for every sign in entity-local space,
+-- so it is baked once into a static IMesh (in local coordinates) and drawn each
+-- frame through a model matrix built from the entity's position/angles. This
+-- replaces the previous approach that rebuilt the mesh — and allocated ~44
+-- Vectors — every frame per sign. The box is baked double-sided (each quad
+-- emitted in both windings) so it renders identically from both faces under the
+-- default cull mode, matching the old two-pass CW/CCW draw.
+
+-- Local-space axes for a flat-lying plate: local Up is the surface normal, local
+-- Forward is the sign's "up", local Right is the sign's "right".
+local L_NORMAL = Vector(0, 0, 1)
+local L_UP     = Vector(1, 0, 0)
+local L_RIGHT  = Vector(0, 1, 0)
+
+local function MeshQuad(p1, p2, p3, p4, col)
+	mesh.Position(p1) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 0, 0) mesh.AdvanceVertex()
+	mesh.Position(p2) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 1, 0) mesh.AdvanceVertex()
+	mesh.Position(p3) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 1, 1) mesh.AdvanceVertex()
+	mesh.Position(p4) mesh.Color(col.r, col.g, col.b, 255) mesh.TexCoord(0, 0, 1) mesh.AdvanceVertex()
+end
+
+-- Emit a quad in both windings (double-sided under default cull).
+local function MeshQuadBoth(p1, p2, p3, p4, col)
+	MeshQuad(p1, p2, p3, p4, col)
+	MeshQuad(p4, p3, p2, p1, col)
+end
+
+-- Append one box (12 quads: 6 faces × 2 windings) to the mesh currently open.
+local function EmitBox(ri, up, fw, faceCol, sideCol, topCol)
+	local ftl =  fw - ri + up
+	local ftr =  fw + ri + up
+	local fbr =  fw + ri - up
+	local fbl =  fw - ri - up
+	local btl = -fw - ri + up
+	local btr = -fw + ri + up
+	local bbr = -fw + ri - up
+	local bbl = -fw - ri - up
+
+	MeshQuadBoth(fbl, fbr, ftr, ftl, faceCol) -- front face
+	MeshQuadBoth(bbr, bbl, btl, btr, faceCol) -- back face
+	MeshQuadBoth(fbr, bbr, btr, ftr, sideCol) -- right side
+	MeshQuadBoth(bbl, fbl, ftl, btl, sideCol) -- left side
+	MeshQuadBoth(ftl, ftr, btr, btl, topCol)  -- top
+	MeshQuadBoth(bbl, bbr, fbr, fbl, sideCol) -- bottom
+end
+
+-- Lazily built on first Draw (needs a render context). Two boxes × 12 quads.
+local signMesh
+
+local function BuildSignMesh()
+	local m = Mesh(matBox)
+	mesh.Begin(m, MATERIAL_QUADS, 2 * 12)
+		-- Outer frame (metal border)
+		EmitBox(
+			L_RIGHT * (HALF_W + BORDER_SIZE),
+			L_UP * (HALF_H + BORDER_SIZE),
+			L_NORMAL * HALF_D,
+			FRAME_FACE, FRAME_SIDE, FRAME_TOP
+		)
+		-- Inner panel (protrudes slightly past the frame to cover the center face)
+		EmitBox(
+			L_RIGHT * HALF_W,
+			L_UP * HALF_H,
+			L_NORMAL * (HALF_D + 0.1),
+			PANEL_FACE, PANEL_SIDE, PANEL_TOP
+		)
+	mesh.End()
+	return m
+end
 
 -- =============================================================================
 -- RENDERING
@@ -123,29 +156,17 @@ function ENT:Draw()
 
 	if LocalPlayer():GetPos():DistToSqr(self:GetPos()) > RENDER_DIST_SQ then return end
 
-	local pos = self:GetPos()
-	local ang = self:GetAngles()
+	-- Draw the cached local-space sign mesh through the entity's transform.
+	signMesh = signMesh or BuildSignMesh()
 
-	-- Orientation vectors from entity angles.
-	-- The plate lies flat: Up = surface normal, Forward/Right = plane axes.
-	local signNormal = ang:Up()
-	local signUp     = ang:Forward()
-	local signRight  = ang:Right()
+	local matrix = Matrix()
+	matrix:SetTranslation(self:GetPos())
+	matrix:SetAngles(self:GetAngles())
 
-	-- Outer frame (metal border)
-	local fri = signRight * (HALF_W + BORDER_SIZE)
-	local fup = signUp * (HALF_H + BORDER_SIZE)
-	local ffw = signNormal * HALF_D
-	local f1, f2, f3, f4, f5, f6, f7, f8 = BoxCorners(pos, fri, fup, ffw)
-	DrawMeshBox(f1, f2, f3, f4, f5, f6, f7, f8, FRAME_FACE, FRAME_SIDE, FRAME_TOP, signNormal, signRight, signUp)
-
-	-- Inner panel (protrudes slightly past frame so it covers the center face)
-	local panelHalfD = HALF_D + 0.1
-	local pri = signRight * HALF_W
-	local pup = signUp * HALF_H
-	local pfw = signNormal * panelHalfD
-	local p1, p2, p3, p4, p5, p6, p7, p8 = BoxCorners(pos, pri, pup, pfw)
-	DrawMeshBox(p1, p2, p3, p4, p5, p6, p7, p8, PANEL_FACE, PANEL_SIDE, PANEL_TOP, signNormal, signRight, signUp)
+	render.SetMaterial(matBox)
+	cam.PushModelMatrix(matrix)
+		signMesh:Draw()
+	cam.PopModelMatrix()
 
 	if not PVPLeaderboard or not PVPLeaderboard.DrawBoard then return end
 

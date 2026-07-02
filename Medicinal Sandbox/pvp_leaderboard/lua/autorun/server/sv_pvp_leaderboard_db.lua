@@ -136,62 +136,42 @@ function PVPLeaderboard.GetPlayerStats(steamid64)
 end
 
 --- Ensure a player has a row in the database. Creates one if missing.
--- Also updates the stored display name to keep it current.
+-- No-op (INSERT OR IGNORE) when the row already exists; the display name is
+-- refreshed by the RecordKill/RecordDeath UPDATEs, so this never needs to read
+-- or update an existing row.
 -- @param ply Player entity
 function PVPLeaderboard.EnsurePlayer(ply)
-	local sid = ply:SteamID64()
-	local name = ply:Nick()
-	local existing = PVPLeaderboard.GetPlayerStats(sid)
-
-	if existing then
-		-- Update stored name if it changed since last recorded event
-		if existing.name ~= name then
-			sql.Query(string.format(
-				"UPDATE %s SET name = %s WHERE steamid64 = %s",
-				TABLE_NAME, sql.SQLStr(name), sql.SQLStr(sid)
-			))
-		end
-	else
-		-- First time this player has been involved in a PVP event
-		sql.Query(string.format(
-			"INSERT INTO %s (steamid64, name) VALUES (%s, %s)",
-			TABLE_NAME, sql.SQLStr(sid), sql.SQLStr(name)
-		))
-	end
+	sql.Query(string.format(
+		"INSERT OR IGNORE INTO %s (steamid64, name) VALUES (%s, %s)",
+		TABLE_NAME, sql.SQLStr(ply:SteamID64()), sql.SQLStr(ply:Nick())
+	))
 end
 
 --- Record a kill for the attacker. Increments kills, updates streak
 -- and best streak, and optionally increments headshots.
+-- All arithmetic is done in SQL against the pre-update row (SQLite evaluates
+-- every RHS before applying the row), so no read-back is needed.
 -- @param ply Player entity (the attacker)
 -- @param isHeadshot boolean - whether this kill was a headshot
 function PVPLeaderboard.RecordKill(ply, isHeadshot)
-	local sid = ply:SteamID64()
 	PVPLeaderboard.EnsurePlayer(ply)
 
-	local stats = PVPLeaderboard.GetPlayerStats(sid)
-	if not stats then return end
-
-	local newKills = stats.kills + 1
-	local newStreak = stats.current_streak + 1
-	local newBestStreak = math.max(stats.best_streak, newStreak)
-	local newHeadshots = stats.headshots + (isHeadshot and 1 or 0)
-
 	sql.Query(string.format(
-		"UPDATE %s SET kills = %d, current_streak = %d, best_streak = %d, headshots = %d, name = %s WHERE steamid64 = %s",
-		TABLE_NAME, newKills, newStreak, newBestStreak, newHeadshots,
-		sql.SQLStr(ply:Nick()), sql.SQLStr(sid)
+		"UPDATE %s SET kills = kills + 1, current_streak = current_streak + 1, " ..
+		"best_streak = MAX(best_streak, current_streak + 1), headshots = headshots + %d, " ..
+		"name = %s WHERE steamid64 = %s",
+		TABLE_NAME, isHeadshot and 1 or 0, sql.SQLStr(ply:Nick()), sql.SQLStr(ply:SteamID64())
 	))
 end
 
 --- Record a death for the victim. Increments deaths and resets current streak.
 -- @param ply Player entity (the victim)
 function PVPLeaderboard.RecordDeath(ply)
-	local sid = ply:SteamID64()
 	PVPLeaderboard.EnsurePlayer(ply)
 
 	sql.Query(string.format(
 		"UPDATE %s SET deaths = deaths + 1, current_streak = 0, name = %s WHERE steamid64 = %s",
-		TABLE_NAME, sql.SQLStr(ply:Nick()), sql.SQLStr(sid)
+		TABLE_NAME, sql.SQLStr(ply:Nick()), sql.SQLStr(ply:SteamID64())
 	))
 end
 
@@ -220,8 +200,11 @@ function PVPLeaderboard.ResetAllStats()
 	sql.Query(string.format("DELETE FROM %s", TABLE_NAME))
 	sql.Query(string.format("DELETE FROM %s", EVENTS_TABLE))
 
-	-- Clear the in-memory windowed aggregates so windowed boards empty out.
-	PVPLeaderboard.RecomputeWindowAgg()
+	-- Empty the in-memory windowed aggregates directly (the event log is now
+	-- empty, so a replay would just rebuild the same empty tables).
+	for periodId in pairs(PVPLeaderboard.WindowAgg) do
+		PVPLeaderboard.WindowAgg[periodId] = {}
+	end
 end
 
 -- =============================================================================
@@ -280,38 +263,52 @@ function PVPLeaderboard.RecordEvent(attackerSID, victimSID, isHeadshot)
 		EVENTS_TABLE, os.time(), sql.SQLStr(attackerSID), sql.SQLStr(victimSID), hs
 	))
 
-	for _, period in ipairs(PVPLeaderboard.Periods) do
-		if period.seconds > 0 then
-			local agg = PVPLeaderboard.WindowAgg[period.id]
-			if agg then applyKill(agg, attackerSID, victimSID, isHeadshot) end
-		end
+	-- WindowAgg only ever holds windowed periods (seeded above), so folding the
+	-- kill into every aggregate covers exactly the rolling windows.
+	for _, agg in pairs(PVPLeaderboard.WindowAgg) do
+		applyKill(agg, attackerSID, victimSID, isHeadshot)
 	end
 end
 
 --- Authoritative rebuild of every windowed aggregate from the event log.
--- Replays only events newer than each window's cutoff (a bounded, ts-indexed
--- range scan), which both seeds the aggregates at startup and drops kills that
--- have aged out of the rolling window. Runs off the per-kill path.
+-- The rolling windows are nested (24h ⊂ 7d ⊂ 30d), so a single ts-indexed range
+-- scan over the *largest* window feeds all of them in one chronological pass —
+-- each event is decoded once and folded into every window it still falls inside.
+-- This both seeds the aggregates at startup and drops kills that have aged out.
+-- Runs off the per-kill path. Ordering by ts (not id) lets the ts index satisfy
+-- both the range filter and the sort; ts and id are both append-monotonic, so
+-- chronological order (and thus streak correctness) is preserved.
 function PVPLeaderboard.RecomputeWindowAgg()
 	local now = os.time()
 
+	-- Collect the windowed periods and a fresh aggregate for each; track the
+	-- widest window so we scan the event log exactly once.
+	local windows = {}
+	local maxSeconds = 0
 	for _, period in ipairs(PVPLeaderboard.Periods) do
 		if period.seconds > 0 then
-			local cutoff = now - period.seconds
 			local agg = {}
-
-			local rows = sql.Query(string.format(
-				"SELECT attacker, victim, headshot FROM %s WHERE ts >= %d ORDER BY id ASC",
-				EVENTS_TABLE, cutoff
-			))
-
-			if rows then
-				for _, ev in ipairs(rows) do
-					applyKill(agg, ev.attacker, ev.victim, tonumber(ev.headshot) == 1)
-				end
-			end
-
+			windows[#windows + 1] = {cutoff = now - period.seconds, agg = agg}
 			PVPLeaderboard.WindowAgg[period.id] = agg
+			if period.seconds > maxSeconds then maxSeconds = period.seconds end
+		end
+	end
+
+	if #windows == 0 then return end
+
+	local rows = sql.Query(string.format(
+		"SELECT ts, attacker, victim, headshot FROM %s WHERE ts >= %d ORDER BY ts ASC",
+		EVENTS_TABLE, now - maxSeconds
+	))
+	if not rows then return end
+
+	for _, ev in ipairs(rows) do
+		local ts = tonumber(ev.ts)
+		local hs = tonumber(ev.headshot) == 1
+		for _, w in ipairs(windows) do
+			if ts >= w.cutoff then
+				applyKill(w.agg, ev.attacker, ev.victim, hs)
+			end
 		end
 	end
 end
@@ -408,8 +405,8 @@ local function BuildWindowBoard(periodId, maxEntries)
 	end)
 
 	-- Trim to top N before resolving names (only look up names we will show).
-	while #board > maxEntries do
-		board[#board] = nil
+	for i = #board, maxEntries + 1, -1 do
+		board[i] = nil
 	end
 
 	local sids = {}
@@ -497,61 +494,57 @@ function PVPLeaderboard.RefreshAndBroadcast()
 	PVPLeaderboard.SendCache()
 end
 
+--- Coalescing broadcast for the per-kill path. A burst of kills (common in a
+-- fast firefight) collapses into a single refresh+broadcast on a 1-second
+-- 1-shot timer instead of one full 4-board broadcast per kill. Signs already
+-- tolerate up to cache_interval of staleness, so ≤1s of latency is invisible.
+function PVPLeaderboard.QueueBroadcast()
+	if timer.Exists("PVPLeaderboard_KillBroadcast") then return end
+	timer.Create("PVPLeaderboard_KillBroadcast", 1, 1, PVPLeaderboard.RefreshAndBroadcast)
+end
+
 -- =============================================================================
 -- CLIENT SYNC REQUEST (rate-limited)
 -- =============================================================================
 
--- Per-player cooldown to prevent request spam
+-- Per-player cooldown to prevent request spam. State lives on the player entity
+-- so it is cleaned up automatically on disconnect (no side table/hook to manage).
 local REQUEST_COOLDOWN = 5
-local lastRequest = {}
 
 net.Receive("PVPLeaderboard_RequestSync", function(len, ply)
 	if not IsValid(ply) then return end
 
-	-- Rate limit: one request per player every 5 seconds
-	local sid = ply:SteamID()
+	-- Rate limit: one request per player every REQUEST_COOLDOWN seconds
 	local now = CurTime()
-	if (lastRequest[sid] or 0) + REQUEST_COOLDOWN > now then return end
-	lastRequest[sid] = now
+	if (ply.pvplb_lastSync or 0) + REQUEST_COOLDOWN > now then return end
+	ply.pvplb_lastSync = now
 
 	PVPLeaderboard.SendCache(ply)
-end)
-
--- Clean up rate limit tracking on disconnect
-hook.Add("PlayerDisconnected", "PVPLeaderboard_CleanupRequest", function(ply)
-	if ply:IsBot() then return end
-	lastRequest[ply:SteamID()] = nil
 end)
 
 -- =============================================================================
 -- ADMIN CONFIG CHANGES (from XGUI panel)
 -- =============================================================================
 
--- Whitelist of ConVars that admins can change via XGUI.
--- Values: the minimum rank required to change each ConVar.
+-- Whitelist of ConVars that superadmins can change via XGUI.
 local allowedConVars = {
-	["pvplb_enabled"]        = "superadmin",
-	["pvplb_max_entries"]    = "superadmin",
-	["pvplb_cache_interval"] = "superadmin",
-	["pvplb_sort_interval"]  = "superadmin",
+	["pvplb_enabled"]        = true,
+	["pvplb_max_entries"]    = true,
+	["pvplb_cache_interval"] = true,
+	["pvplb_sort_interval"]  = true,
 }
 
 net.Receive("PVPLeaderboard_ConfigChange", function(len, ply)
-	if not IsValid(ply) then return end
+	if not IsValid(ply) or not ply:IsSuperAdmin() then return end
 
 	local cvarName = net.ReadString()
 	local cvarValue = net.ReadString()
 
 	-- Reject unknown ConVars silently
-	local requiredRank = allowedConVars[cvarName]
-	if not requiredRank then return end
+	if not allowedConVars[cvarName] then return end
 
-	-- Permission check: tier-based
-	if requiredRank == "superadmin" then
-		if not ply:IsSuperAdmin() then return end
-	else
-		if not ply:IsAdmin() then return end
-	end
+	-- Cap value length; all whitelisted ConVars are short numeric/boolean values.
+	if #cvarValue > 32 then return end
 
 	local cv = GetConVar(cvarName)
 	if not cv then return end
@@ -575,25 +568,17 @@ hook.Add("InitPostEntity", "PVPLeaderboard_InitCache", function()
 	ServerLog("[PVP Leaderboard] Caches populated (" .. #alltime .. " all-time entries).\n")
 end)
 
--- Send the current cache to each player when they finish loading.
--- Small delay ensures the client's net receivers are registered.
-hook.Add("PlayerInitialSpawn", "PVPLeaderboard_SendOnJoin", function(ply)
-	timer.Simple(2, function()
-		if IsValid(ply) then
-			PVPLeaderboard.SendCache(ply)
-		end
-	end)
-end)
+-- Clients pull the cache themselves via PVPLeaderboard_RequestSync on their own
+-- InitPostEntity (see cl_pvp_leaderboard.lua) once their receivers exist, so no
+-- server-side timed push on join is needed.
 
 --- Create (or restart) the periodic cache refresh timer.
--- Called on load and whenever the cache interval ConVar changes.
+-- Called on load and whenever the cache interval ConVar changes. Reads the
+-- interval straight from the ConVar (not PVPLeaderboard.Config) so it does not
+-- depend on the shared config callback having run first — timer.Create with the
+-- same name replaces any existing timer.
 local function StartCacheTimer()
-	local interval = PVPLeaderboard.Config.CacheInterval or 60
-
-	-- Remove existing timer before creating a new one
-	if timer.Exists("PVPLeaderboard_CacheRefresh") then
-		timer.Remove("PVPLeaderboard_CacheRefresh")
-	end
+	local interval = GetConVar("pvplb_cache_interval"):GetInt()
 
 	timer.Create("PVPLeaderboard_CacheRefresh", interval, 0, function()
 		-- Authoritative replay first (drops kills that have aged out of each
@@ -607,13 +592,9 @@ end
 StartCacheTimer()
 
 -- Restart the timer when the cache interval ConVar changes
-cvars.AddChangeCallback("pvplb_cache_interval", function()
-	timer.Simple(0, StartCacheTimer)
-end, "pvplb_cache_timer")
+cvars.AddChangeCallback("pvplb_cache_interval", StartCacheTimer, "pvplb_cache_timer")
 
--- Re-query the database when max_entries changes (cache size changed)
+-- Rebuild + rebroadcast when max_entries changes (cache size changed)
 cvars.AddChangeCallback("pvplb_max_entries", function()
-	timer.Simple(0, function()
-		PVPLeaderboard.RefreshAndBroadcast()
-	end)
+	PVPLeaderboard.RefreshAndBroadcast()
 end, "pvplb_cache_entries")

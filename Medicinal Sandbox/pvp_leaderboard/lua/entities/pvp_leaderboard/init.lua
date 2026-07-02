@@ -55,25 +55,17 @@ function ENT:OnTakeDamage(dmginfo)
 end
 
 -- =============================================================================
--- ACF DAMAGE PROTECTION
--- ACF bypasses the normal damage system, so we wrap ACF_Damage directly.
--- Same pattern as acf-buildmode-protection: Initialize hook + 1s delay
--- ensures ACF_Damage is defined before we wrap it.
+-- ACF-3 DAMAGE PROTECTION
+-- ACF bypasses the normal damage system (OnTakeDamage/EntityTakeDamage), so we
+-- veto damage to any leaderboard sign via ACF-3's native ACF_PreDamageEntity
+-- hook (returning false cancels the damage). This replaces the old ACF2-era
+-- global ACF_Damage wrapper, which no longer exists on ACF-3. Registered once
+-- from the base entity file (the variants inherit and never re-run this);
+-- ClassToPeriod covers all four sign classes. Skipped cleanly if ACF is absent.
 -- =============================================================================
 
-hook.Add("Initialize", "PVPLeaderboard_ACFProtection", function()
-	timer.Simple(1, function()
-		if not ACF_Damage then return end
-
-		local OriginalACF_Damage = ACF_Damage
-
-		function ACF_Damage(Entity, Energy, FrAera, Angle, Inflictor, Bone, ...)
-			-- Covers all leaderboard sign classes (all-time + 24h/7d/30d).
-			if IsValid(Entity) and PVPLeaderboard.ClassToPeriod[Entity:GetClass()] then
-				return { Damage = 0, Overkill = 0, Loss = 0, Kill = false }
-			end
-
-			return OriginalACF_Damage(Entity, Energy, FrAera, Angle, Inflictor, Bone, ...)
-		end
-	end)
+hook.Add("ACF_PreDamageEntity", "PVPLeaderboard_ACFProtection", function(Entity)
+	if IsValid(Entity) and PVPLeaderboard.ClassToPeriod[Entity:GetClass()] then
+		return false
+	end
 end)
