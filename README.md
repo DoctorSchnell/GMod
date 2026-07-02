@@ -2,7 +2,7 @@
 
 Custom Garry's Mod server addons by **Doctor Schnell & Claude (Anthropic)**.
 
-9 addons for a public sandbox server (5-10 players). These fill gaps and resolve conflicts between third-party mods.
+10 addons for a public sandbox server (5-10 players). These fill gaps and resolve conflicts between third-party mods. One (ACF Killfeed Fix) is deprecated but kept for reference.
 
 ## Addons
 
@@ -10,13 +10,14 @@ Custom Garry's Mod server addons by **Doctor Schnell & Claude (Anthropic)**.
 |-------|---------|------|-------------|
 | [ACF Killfeed Fix](Medicinal%20Sandbox/acf_killfeed_fix/) | 2.0.0 | serveronly | ~~Removes duplicate killfeed entries caused by ACF~~ **(Deprecated — ACF2 replaced by ACF-3)** |
 | [AFK System](Medicinal%20Sandbox/afk_system/) | 1.0.0 | servercontent | AFK detection with 3D overhead sign, ULX commands, XGUI panel |
-| [Buildmode Enhancements](Medicinal%20Sandbox/buildmode-enhancements/) | 1.1.0 | serveronly | Protects buildmode players' props from all damage sources |
+| [Buildmode Enhancements](Medicinal%20Sandbox/buildmode-enhancements/) | 1.2.0 | serveronly | Protects buildmode players' props from all damage sources |
 | [CW 2.0 Extra Ammo](Medicinal%20Sandbox/cw_extra_ammo/) | 1.0.0 | serveronly | Grants extra reserve ammo on spawn for CW 2.0 and other weapons |
 | [Duplicator Limiter](Medicinal%20Sandbox/duplicator_limiter/) | 1.1.1 | serveronly | Rate-limits Duplicator tool by batching entity creation |
-| [PVP Combat Timer](Medicinal%20Sandbox/pvp_combat_timer/) | 2.1.0 | servercontent | Restricts entity spawning/pickup during PVP combat cooldown |
+| [Map Post-Process Fix](Medicinal%20Sandbox/map_postprocess_fix/) | 1.2.0 | tool | Server-enforced per-map HDR/bloom/specular overrides |
 | [Persistent Punishments](Medicinal%20Sandbox/persistent_punishments/) | 1.0.0 | serveronly | Persistent gag, mute, freeze, jail via ULX with XGUI management tab |
-| [PVP Leaderboard](Medicinal%20Sandbox/pvp_leaderboard/) | 2.2.2 | servercontent | Persistent PVP stats on a spawnable 3D2D floating sign |
-| [Spawn Protection ULX Patch](Medicinal%20Sandbox/spawnprotection_ulx/) | 2.0.2 | serveronly | XGUI settings panel for Workshop Spawn Protection addon |
+| [PVP Combat Timer](Medicinal%20Sandbox/pvp_combat_timer/) | 2.1.0 | servercontent | Restricts entity spawning/pickup during PVP combat cooldown |
+| [PVP Leaderboard](Medicinal%20Sandbox/pvp_leaderboard/) | 2.3.3 | servercontent | Persistent PVP stats on spawnable 3D2D floating signs across four time windows |
+| [Spawn Protection Enhancements](Medicinal%20Sandbox/spawnprotection_enhancements/) | 3.0.0 | serveronly | XGUI panel + cancel-on-fire for Workshop Spawn Protection addon |
 
 ### ACF Killfeed Fix (Deprecated)
 
@@ -38,6 +39,10 @@ Grants extra reserve ammo on spawn for CW 2.0 and other weapons. Calculates rese
 
 Batches Duplicator entity creation across multiple server ticks to prevent crashes from large workshop duplications. Entity caps, per-player cooldowns, admin bypass. XGUI settings panel.
 
+### Map Post-Process Fix
+
+Server-enforced per-map HDR, bloom, and specular overrides. Fixes overbright or washed-out maps without requiring any client action.
+
 ### Persistent Punishments
 
 ULX extension that makes punishments (gag, mute, freeze, jail) persist across disconnects via SQLite. Includes durations, reasons, SteamID commands for offline players, auto-expiry, and an XGUI Punishments tab for applying/managing punishments.
@@ -48,11 +53,11 @@ Tags players in PVP combat and restricts entity spawning/pickup during a cooldow
 
 ### PVP Leaderboard
 
-Tracks kills, deaths, K/D, streaks, and headshots in SQLite. Displays on a spawnable 3D2D floating sign with split-flap animation. Also has a draggable on-screen panel (`!pvpboard`) with auto-cycling sort.
+Tracks kills, deaths, K/D, streaks, and headshots in SQLite across four time windows (all-time, 24h, 7d, 30d). Each window is a spawnable metal-framed 3D2D floating sign with split-flap animation; the `!pvpboard` panel switches between them with auto-cycling sort. Integrates with PVP Combat Timer for kill validation. Requires PVP Combat Timer.
 
-### Spawn Protection ULX Patch
+### Spawn Protection Enhancements
 
-XGUI settings panel for the Workshop Spawn Protection addon (ID: 3401291379). Includes a CW 2.0 flashbang compatibility fix. Does not modify the original Workshop addon.
+Enhances the Workshop Spawn Protection addon (ID: 3401291379) with an XGUI settings panel, cancel-protection-on-fire, a CW 2.0 flashbang compatibility fix, and dedicated-server ConVar sync. Does not modify the original Workshop addon.
 
 ## Dependencies
 
@@ -76,10 +81,11 @@ garrysmod/addons/
 ├── buildmode-enhancements/
 ├── cw_extra_ammo/
 ├── duplicator_limiter/
+├── map_postprocess_fix/
 ├── persistent_punishments/
 ├── pvp_combat_timer/
 ├── pvp_leaderboard/
-└── spawnprotection_ulx/
+└── spawnprotection_enhancements/
 ```
 
 Copy the desired addon folders from `Medicinal Sandbox/` into your server's `addons/` directory and restart the server.
